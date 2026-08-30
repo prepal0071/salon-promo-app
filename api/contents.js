@@ -95,7 +95,7 @@ module.exports = async function (req, res) {
 プレゼント：${p.gift || ''}
 期間：${b.start_date || ''}〜${b.end_date || ''}
 対象：${b.target || ''}
-販売・利用につなげたいもの：${b.sales_goal || 'なし'}
+
 条件：${b.conditions || ''}
 
 【LINE】
