@@ -111,7 +111,62 @@ window.setPopAlign=v=>{popAlign=v;render()};window.setPopFont=v=>{popFont=v;rend
 window.savePopDesignText=async()=>{contents.pop={...contents.pop,headline:$('popDesignHead').value,subheadline:$('popDesignSub').value,gift_display:$('popDesignGift').value,layout:{x:Math.round(popX*10)/10,y:Math.round(popY*10)/10,align:popAlign,font:popFont}};await saveVersion('pop',contents.pop.headline,JSON.stringify(contents.pop),[]);overlayTitle=contents.pop.headline;overlayGift=contents.pop.gift_display||selected.gift;render()};
 window.setRevision=t=>{const e=$('rev');if(e)e.value=t};
 async function generateOneImage(revision,variant){const j=await api('/api/image',{prompt:contents.image?.prompt_ja||`${selected.title} ${selected.gift}`,revision,variant});return j.image_base64?`data:image/png;base64,${j.image_base64}`:j.image_url}
-window.generateCandidates=async()=>{const revision=$('rev')?.value||'';const variants=['treatment','interior','concept'];imageCandidates=[];imageStatus='方向性の違うAI画像を生成しています… 0/3';render();const made=[];try{for(let i=0;i<variants.length;i++){imageStatus=`AI画像を生成しています… ${i+1}/3`;render();const src=await generateOneImage(revision,variants[i]);if(src)made.push(src)}imageCandidates=made;imageStatus=made.length?'方向性の違う3候補から使いたい画像を選んでください。':'エラー：画像を生成できませんでした。';render()}catch(e){imageCandidates=made;imageStatus=`エラー：${e.message}`;render()}};
+window.generateCandidates=async()=>{
+  const revision=$('rev')?.value||'';
+  const variants=['treatment','interior','concept'];
+
+  imageCandidates=[];
+  imageStatus='方向性の違うAI画像を生成しています… 0/3';
+  render();
+
+  const made=[];
+
+  for(let i=0;i<variants.length;i++){
+    imageStatus=`AI画像を生成しています… ${i+1}/3`;
+    render();
+
+    try{
+      const src=await generateOneImage(revision,variants[i]);
+      if(src) made.push(src);
+
+    }catch(e){
+      try{
+        const safeRevision=`
+人物の身体への施術を直接見せない。
+人物を使わず、施術ベッド、タオル、植物、ハーブ、
+オイル、美容用品、自然光などを使って、
+今回の美容ケアを上品に連想できる広告イメージにする。
+性的・官能的な表現は一切含めない。
+`;
+
+        const retrySrc=await generateOneImage(
+          safeRevision,
+          i===1?'interior':'concept'
+        );
+
+        if(retrySrc) made.push(retrySrc);
+
+      }catch(retryError){
+        console.warn(
+          `画像候補${i+1}は生成できませんでした`,
+          retryError
+        );
+      }
+    }
+  }
+
+  imageCandidates=made;
+
+  if(made.length===3){
+    imageStatus='方向性の違う3候補から使いたい画像を選んでください。';
+  }else if(made.length){
+    imageStatus=`${made.length}候補を生成しました。必要に応じてもう一度生成できます。`;
+  }else{
+    imageStatus='エラー：画像を生成できませんでした。もう一度お試しください。';
+  }
+
+  render();
+};
 function blobExtension(t){return t==='image/jpeg'?'jpg':t==='image/webp'?'webp':'png'}
 async function persistImage(src){if(!currentPromoId||!src)return;let blob;if(src.startsWith('data:'))blob=await(await fetch(src)).blob();else blob=await(await fetch(src)).blob();const imageType=outputs.includes('image')?'instagram':'pop';const{data:old}=await sb.from('promotion_images').select('id,version').eq('promotion_id',currentPromoId).eq('image_type',imageType).eq('is_current',true).order('version',{ascending:false}).limit(1).maybeSingle();if(old)await sb.from('promotion_images').update({is_current:false}).eq('id',old.id);const v=(old?.version||0)+1,ext=blobExtension(blob.type),path=`${salon.id}/${currentPromoId}/${imageType}-v${v}.${ext}`;const{error:up}=await sb.storage.from('promotion-images').upload(path,blob,{contentType:blob.type||'image/png',upsert:false});if(up)throw up;const meta={prompt:contents.image?.prompt_ja||'',overlayTitle,overlayGift,overlayFooter,instaTextMode,instaTitleX:Math.round(instaTitleX*10)/10,
 instaTitleY:Math.round(instaTitleY*10)/10,
