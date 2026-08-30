@@ -73,33 +73,69 @@ ${variantInstruction}
 ・透かし
 `;
 
-    const r = await fetch(
-      'https://api.openai.com/v1/images/generations',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${key}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'gpt-image-2',
-          prompt,
-          size: '1024x1024',
-          quality: 'low'
-        })
-      }
-    );
+    const callImage = async (imagePrompt) => {
+      const r = await fetch(
+        'https://api.openai.com/v1/images/generations',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${key}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'gpt-image-2',
+            prompt: imagePrompt,
+            size: '1024x1024',
+            quality: 'low'
+          })
+        }
+      );
 
-    const j = await r.json();
+      const j = await r.json();
+      return { r, j };
+    };
+
+    let { r, j } = await callImage(prompt);
+
+    if (!r.ok) {
+      const message = j.error?.message || '';
+
+      const isSafety =
+        message.includes('safety') ||
+        message.includes('sexual');
+
+      if (isSafety) {
+        const safePrompt = `
+${b.prompt || ''}
+
+女性向けエステサロンの販促用イメージ。
+
+人物の肌や身体への接触を主役にしない。
+人物を使用する場合は、十分に衣服やサロンウェアを着用し、
+顔や頭部、手元、サロン空間を中心に表現する。
+
+または人物を使わず、
+施術ベッド、タオル、植物、ハーブ、オイルボトル、
+美容用品、自然光などを使った上品な美容広告として表現する。
+
+高級感、清潔感、安心感のある30〜50代女性向け。
+性的・官能的な表現は一切含めない。
+身体の特定部位を強調しない。
+
+文字、数字、ロゴ、看板、透かしは入れない。
+`;
+
+        ({ r, j } = await callImage(safePrompt));
+      }
+    }
 
     if (!r.ok) {
       return res
         .status(r.status)
         .json({
-          error:
-            j.error?.message ||
-            '画像生成エラー'
+          error: 'この画像案は生成できませんでした。別の構図で再度お試しください。'
         });
+    }ｍ
     }
 
     const d = j.data?.[0];
