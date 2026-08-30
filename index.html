@@ -226,7 +226,7 @@ if(overlayFooter){
   );
 }
 
-ctx.shadowBlur=0;const a=document.createElement('a');a.download=`${selected.title||'instagram'}.png`;a.href=c.toDataURL('image/png');a.click()};
+ctx.shadowBlur=0;}const a=document.createElement('a');a.download=`${selected.title||'instagram'}.png`;a.href=c.toDataURL('image/png');a.click()};
 $('done').onclick=async()=>{await hist();show('home')};
 async function hist(){const{data,error}=await sb.from('promotions').select('*').eq('salon_id',salon.id).order('created_at',{ascending:false}).limit(30);if(error){$('history').textContent=error.message;return}$('history').innerHTML=!data?.length?'まだありません。':data.map(x=>`<div class="item"><div class="itemMain" onclick="openPromo('${x.id}')"><b>${esc(x.selected_plan?.title||x.theme)}</b><div class="muted">${x.start_date} ～ ${x.end_date} ／ クリックして確認・修正</div></div><div class="itemActions"><button class="btn btn2 smallBtn" onclick="openPromo('${x.id}')">開く</button><button class="btn btnDanger smallBtn" onclick="deletePromo('${x.id}')">削除</button></div></div>`).join('')}
 sb.auth.onAuthStateChange(event=>{if(event==='PASSWORD_RECOVERY')show('newPassword')});if(location.search.includes('password-recovery=1'))show('newPassword');else boot();
