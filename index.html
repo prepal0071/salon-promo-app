@@ -119,11 +119,13 @@ gift=contents.pop?.gift_display ?? selected.gift,fs=fontScale(popFont);$('result
   <div class="popSub">${esc(sub).replace(/\n/g,'<br>')}</div>
 </div>
 
+${gift ? `
 <div class="popText"
   onpointerdown="startDrag(event,'popGift')"
   style="${textPosStyle(popGiftX,popGiftY,popAlign)};color:${popTextColor==='white'?'#ffffff':'#3d372f'}">
   <div class="popGift">${esc(gift).replace(/\n/g,'<br>')}</div>
 </div>
+` : ''}
 
 <div class="popText"
   onpointerdown="startDrag(event,'popFooter')"
