@@ -31,7 +31,12 @@ textarea{min-height:92px;resize:vertical}.row,.editGrid{display:grid;grid-templa
 </style></head><body><main class="wrap"><div class="head"><div><h2 style="margin:0">月間サロン販促メーカー</h2><div id="salonName" class="muted">テスト版</div></div><button id="logout" class="btn btn2 hide">ログアウト</button></div><section id="login" class="card"><h2>ログイン</h2><label>メールアドレス</label><input id="email" type="email"><label>パスワード</label><input id="password" type="password"><p id="loginMsg"></p><div class="actions"><button id="loginBtn" class="btn">ログイン</button><button id="signupBtn" class="btn btn2">新規登録</button></div><button id="forgotBtn" class="linkbtn">パスワードを忘れた方</button></section><section id="forgot" class="card hide"><h2>パスワード再設定</h2><label>メールアドレス</label><input id="resetEmail" type="email"><p id="forgotMsg"></p><div class="actions"><button id="sendReset" class="btn">再設定メールを送る</button><button id="backLogin" class="btn btn2">ログインへ戻る</button></div></section><section id="newPassword" class="card hide"><h2>新しいパスワードを設定</h2><label>新しいパスワード</label><input id="newPass1" type="password"><label>新しいパスワード（確認）</label><input id="newPass2" type="password"><p id="newPassMsg"></p><button id="saveNewPass" class="btn">パスワードを変更</button></section><section id="setup" class="card hide"><h2 id="setupTitle">サロン初期設定</h2><label>サロン名</label><input id="sname"><label>コンセプト</label><textarea id="concept"></textarea><label>主なお客様</label><input id="customer" value="30〜50代女性"><p id="setupMsg"></p><div class="actions"><button id="setupSave" class="btn">保存</button><button id="setupCancel" class="btn btn2 hide">キャンセル</button></div></section><section id="home" class="hide"><div class="card hero"><h2>今月の販促を、まとめて作成</h2><div class="actions" style="justify-content:center"><button id="newBtn" class="btn">＋ 新しい販促をつくる</button><button id="editSalonBtn" class="btn btn2">サロン情報を編集</button></div></div><div class="card"><h3>最近作った販促</h3><p class="muted">過去の販促は再編集できます。不要になったものは削除できます。</p><div id="history"></div></div></section><section id="form" class="card hide"><h2>今月は、どんな企画にしますか？</h2><div class="row"><div><label>開始日</label><input id="start" type="date" value="2026-09-01"></div><div><label>終了日</label><input id="end" type="date" value="2026-09-30"></div></div><label>希望テーマ</label><input id="theme" value="夏の頭の疲れ"><label>プレゼント内容</label><input id="gift" value="提案希望"><label>対象者</label><input id="target" value="ご来店のお客様全員"><label>条件</label><input id="conditions" value="お一人様1回限り"><label>今回作成するもの</label><div class="checks"><label class="check"><input id="outPop" type="checkbox" checked>店内POP</label><label class="check"><input id="outLine" type="checkbox" checked>LINE配信文</label><label class="check"><input id="outInsta" type="checkbox" checked>Instagram投稿文</label><label class="check"><input id="outImage" type="checkbox" checked>Instagram画像</label></div><div class="row"><div><label>LINEの絵文字</label><select id="lineEmoji"><option value="none">なし</option><option value="low" selected>控えめ</option><option value="standard">標準</option><option value="high">多め</option></select></div><div><label>Instagramの絵文字</label><select id="instaEmoji"><option value="none">なし</option><option value="low" selected>控えめ</option><option value="standard">標準</option><option value="high">多め</option></select></div></div><p id="formMsg"></p><div class="actions"><button id="propose" class="btn">AIに販促プランを提案してもらう</button><button id="homeBtn" class="btn btn2">HOME</button></div></section><section id="plansSec" class="hide"><h2>AIから3つの販促プラン</h2><div id="plans" class="plans"></div><div class="card"><label>こんな感じにしたい</label><textarea id="note"></textarea><div class="actions"><button id="regen" class="btn">希望を反映して再提案</button><button id="backForm" class="btn btn2">入力に戻る</button></div></div></section><section id="confirm" class="card hide"><h2>この内容で作成します</h2><div id="summary" class="summary"></div><p id="confirmMsg"></p><div class="actions"><button id="make" class="btn">選んだ販促物を作成</button><button id="backPlans" class="btn btn2">企画に戻る</button></div></section><section id="results" class="hide"><h2 id="rtitle">販促セット</h2><div id="tabs" class="tabs"></div><div class="card"><div id="result" class="copy"></div><p id="saveMsg"></p><div class="actions"><button id="done" class="btn btn2">HOME</button></div></div></section></main><script>
 const sb=supabase.createClient('https://ufnpkftqwmbtlracvaaf.supabase.co','sb_publishable_ddDiJawM9TR4Fe_Yuopqqg_ZKaR_KFK');
 let user,salon,settings,plans=[],selected,contents={},tab='',outputs=[],currentPromoId=null,imageSrc='',imageCandidates=[],imageCandidateLabels=[],imageStatus='',editingSalon=false;
-let popX=50,popY=50,popAlign='center',popFont='medium',instaTextMode='titleGift',
+let popTitleX=50,popTitleY=28,
+popSubX=50,popSubY=43,
+popGiftX=50,popGiftY=62,
+popFooterX=50,popFooterY=82,
+popAlign='center',popFont='medium',
+popTextColor='dark',popVeilTone='light',popVeilStrength='medium',instaTextMode='titleGift',
 instaTitleX=50,instaTitleY=28,
 instaGiftX=50,instaGiftY=58,
 instaFooterX=50,instaFooterY=84,
@@ -42,15 +47,22 @@ function show(id){['login','forgot','newPassword','setup','home','form','plansSe
 function fmtDate(d){if(!d)return'';const x=new Date(d+'T00:00:00');return`${x.getMonth()+1}月${x.getDate()}日`}
 function clamp(n,min,max){return Math.max(min,Math.min(max,n))}
 window.startDrag=(e,type)=>{const el=e.currentTarget,frame=el.parentElement.parentElement;dragState={type,el,frame};el.classList.add('dragging');el.setPointerCapture?.(e.pointerId);e.preventDefault()};
-window.addEventListener('pointermove',e=>{if(!dragState)return;const r=dragState.frame.getBoundingClientRect();const x=clamp((e.clientX-r.left)/r.width*100,8,92),y=clamp((e.clientY-r.top)/r.height*100,8,92);dragState.el.style.left=x+'%';dragState.el.style.top=y+'%';if(dragState.type==='pop'){
-  popX=x;popY=y
+window.addEventListener('pointermove',e=>{if(!dragState)return;const r=dragState.frame.getBoundingClientRect();const x=clamp((e.clientX-r.left)/r.width*100,8,92),y=clamp((e.clientY-r.top)/r.height*100,8,92);dragState.el.style.left=x+'%';dragState.el.style.top=y+'%';if(dragState.type==='popTitle'){
+  popTitleX=x;popTitleY=y;
+}else if(dragState.type==='popSub'){
+  popSubX=x;popSubY=y;
+}else if(dragState.type==='popGift'){
+  popGiftX=x;popGiftY=y;
+}else if(dragState.type==='popFooter'){
+  popFooterX=x;popFooterY=y;
 }else if(dragState.type==='instaTitle'){
-  instaTitleX=x;instaTitleY=y
+  instaTitleX=x;instaTitleY=y;
 }else if(dragState.type==='instaGift'){
-  instaGiftX=x;instaGiftY=y
+  instaGiftX=x;instaGiftY=y;
 }else if(dragState.type==='instaFooter'){
-  instaFooterX=x;instaFooterY=y
-}});
+  instaFooterX=x;instaFooterY=y;
+}
+});
 window.addEventListener('pointerup',()=>{if(!dragState)return;dragState.el.classList.remove('dragging');dragState=null});
 function textPosStyle(x,y,a){return`left:${x}%;top:${y}%;text-align:${a};`}
 function fontScale(s){return s==='small'?.84:s==='large'?1.16:1}
@@ -70,7 +82,14 @@ async function api(url,body){const r=await fetch(url,{method:'POST',headers:{'Co
 async function gen(){outputs=selectedOutputs();if(!outputs.length){$('formMsg').textContent='作成するものを1つ以上選んでください。';return}$('formMsg').textContent='';try{const j=await api('/api/plans',{salon:settings,start_date:$('start').value,end_date:$('end').value,theme:$('theme').value,gift_request:$('gift').value,target:$('target').value,conditions:$('conditions').value,note:$('note').value});plans=j.plans;$('plans').innerHTML=plans.map(p=>`<div class="plan ${p.recommended?'reco':''}"><span class="tag">PLAN ${p.id}${p.recommended?'・おすすめ':''}</span><h3>${esc(p.title)}</h3><p><b>${esc(p.gift)}</b></p><p>${esc(p.reason)}</p><button class="btn" onclick="choose('${p.id}')">このプランにする</button></div>`).join('');show('plansSec')}catch(e){$('formMsg').textContent=e.message}}
 $('propose').onclick=gen;$('regen').onclick=gen;
 window.choose=id=>{selected=plans.find(p=>p.id===id);$('summary').innerHTML=`<div>企画</div><div><b>${esc(selected.title)}</b></div><div>キャッチ</div><div>${esc(selected.catch)}</div><div>期間</div><div>${$('start').value} ～ ${$('end').value}</div><div>プレゼント</div><div>${esc(selected.gift)}</div>`;show('confirm')};
-$('make').onclick=async()=>{try{contents=await api('/api/contents',{salon:settings,plan:selected,start_date:$('start').value,end_date:$('end').value,target:$('target').value,conditions:$('conditions').value,line_emoji:$('lineEmoji').value,instagram_emoji:$('instaEmoji').value,outputs});const{data:p,error}=await sb.from('promotions').insert({salon_id:salon.id,created_by:user.id,start_date:$('start').value,end_date:$('end').value,theme:$('theme').value,gift_request:$('gift').value,target:$('target').value,conditions:$('conditions').value,requested_outputs:outputs,plan_candidates:plans,selected_plan:selected,status:'generated'}).select().single();if(error)throw error;currentPromoId=p.id;const rows=[];if(contents.pop)rows.push({promotion_id:p.id,content_type:'pop',title:contents.pop.headline,body:JSON.stringify(contents.pop),hashtags:[],version:1,is_current:true});if(contents.line)rows.push({promotion_id:p.id,content_type:'line',title:contents.line.title,body:contents.line.body,hashtags:[],version:1,is_current:true});if(contents.instagram)rows.push({promotion_id:p.id,content_type:'instagram',title:selected.title,body:contents.instagram.caption,hashtags:contents.instagram.hashtags||[],version:1,is_current:true});if(rows.length){const{error:e}=await sb.from('promotion_contents').insert(rows);if(e)throw e}imageSrc='';imageCandidates=[];imageStatus='';overlayTitle=contents.pop?.headline||selected.title;overlayGift=contents.pop?.gift_display||selected.gift;overlayFooter=`${fmtDate($('start').value)}〜${fmtDate($('end').value)} ／ ${$('conditions').value}`;popX=Number(contents.pop?.layout?.x)||50;popY=Number(contents.pop?.layout?.y)||50;popAlign=contents.pop?.layout?.align||'center';popFont=contents.pop?.layout?.font||'medium';instaTextMode='titleGift';
+$('make').onclick=async()=>{try{contents=await api('/api/contents',{salon:settings,plan:selected,start_date:$('start').value,end_date:$('end').value,target:$('target').value,conditions:$('conditions').value,line_emoji:$('lineEmoji').value,instagram_emoji:$('instaEmoji').value,outputs});const{data:p,error}=await sb.from('promotions').insert({salon_id:salon.id,created_by:user.id,start_date:$('start').value,end_date:$('end').value,theme:$('theme').value,gift_request:$('gift').value,target:$('target').value,conditions:$('conditions').value,requested_outputs:outputs,plan_candidates:plans,selected_plan:selected,status:'generated'}).select().single();if(error)throw error;currentPromoId=p.id;const rows=[];if(contents.pop)rows.push({promotion_id:p.id,content_type:'pop',title:contents.pop.headline,body:JSON.stringify(contents.pop),hashtags:[],version:1,is_current:true});if(contents.line)rows.push({promotion_id:p.id,content_type:'line',title:contents.line.title,body:contents.line.body,hashtags:[],version:1,is_current:true});if(contents.instagram)rows.push({promotion_id:p.id,content_type:'instagram',title:selected.title,body:contents.instagram.caption,hashtags:contents.instagram.hashtags||[],version:1,is_current:true});if(rows.length){const{error:e}=await sb.from('promotion_contents').insert(rows);if(e)throw e}imageSrc='';imageCandidates=[];imageStatus='';overlayTitle=contents.pop?.headline||selected.title;overlayGift=contents.pop?.gift_display||selected.gift;overlayFooter=`${fmtDate($('start').value)}〜${fmtDate($('end').value)} ／ ${$('conditions').value}`;popTitleX=Number(contents.pop?.layout?.titleX ?? contents.pop?.layout?.x)||50;
+popTitleY=Number(contents.pop?.layout?.titleY ?? contents.pop?.layout?.y)||28;
+popSubX=Number(contents.pop?.layout?.subX)||50;
+popSubY=Number(contents.pop?.layout?.subY)||43;
+popGiftX=Number(contents.pop?.layout?.giftX)||50;
+popGiftY=Number(contents.pop?.layout?.giftY)||62;
+popFooterX=Number(contents.pop?.layout?.footerX)||50;
+popFooterY=Number(contents.pop?.layout?.footerY)||82;popAlign=contents.pop?.layout?.align||'center';popFont=contents.pop?.layout?.font||'medium';instaTextMode='titleGift';
 instaTitleX=50;instaTitleY=28;
 instaGiftX=50;instaGiftY=58;
 instaFooterX=50;instaFooterY=84;
@@ -79,7 +98,64 @@ function buildTabs(){const t=[];if(outputs.includes('pop'))t.push(['pop','POP原
 function render(){if(tab==='pop'){$('result').innerHTML=`<h3>POP原稿を編集</h3><label>タイトル（改行可）</label><textarea id="popHead">${esc(contents.pop?.headline||selected.title)}</textarea><label>サブタイトル（改行可）</label><textarea id="popSub">${esc(contents.pop?.subheadline||selected.catch)}</textarea><label>本文</label><textarea id="popBody">${esc(contents.pop?.body||'')}</textarea><label>フッター</label><textarea id="popFooter">${esc(contents.pop?.footer||'')}</textarea><button class="btn" onclick="savePopEdit()">POP原稿を保存</button>`;return}
 if(tab==='line'){$('result').innerHTML=`<h3>LINE配信文を編集</h3><label>タイトル</label><textarea id="lineTitle">${esc(contents.line?.title||'')}</textarea><label>本文</label><textarea id="lineBody" style="min-height:330px">${esc(contents.line?.body||'')}</textarea><button class="btn" onclick="saveLineEdit()">LINEを保存</button>`;return}
 if(tab==='insta'){$('result').innerHTML=`<h3>Instagram投稿文を編集</h3><label>投稿文</label><textarea id="instaBody" style="min-height:420px">${esc(contents.instagram?.caption||'')}</textarea><label>ハッシュタグ</label><textarea id="instaTags">${esc((contents.instagram?.hashtags||[]).map(h=>'#'+h.replace(/^#/,'')).join(' '))}</textarea><button class="btn" onclick="saveInstaTextEdit()">Instagram投稿文を保存</button>`;return}
-if(tab==='popdesign'){const head=contents.pop?.headline||selected.title,sub=contents.pop?.subheadline||selected.catch,gift=contents.pop?.gift_display||selected.gift,fs=fontScale(popFont);$('result').innerHTML=`<div class="popPreview">${imageSrc?`<img class="popBg" src="${imageSrc}">`:''}<div class="popVeil"></div><div class="popOverlayMain"><div class="popText" onpointerdown="startDrag(event,'pop')" style="${textPosStyle(popX,popY,popAlign)}"><div class="popK">MONTHLY PRESENT</div><div class="popH" style="font-size:calc(clamp(24px,4.8vw,44px) * ${fs})">${esc(head).replace(/\n/g,'<br>')}</div><div class="popSub">${esc(sub).replace(/\n/g,'<br>')}</div><div class="popGift">${esc(gift).replace(/\n/g,'<br>')}</div><div class="popFoot">${fmtDate($('start').value)}〜${fmtDate($('end').value)}<br>${esc($('target').value)} ／ ${esc($('conditions').value)}</div><div class="popBrand">${esc(salon.salon_name)}</div></div></div></div><div class="controlBox"><h4 class="sectionTitle">POPの文字を調整</h4><p class="helper">プレビュー上の文字をマウス（スマホは指）でつかんで、好きな位置へ移動できます。文字揃えは位置とは別に変更できます。</p><label>タイトル（改行可）</label><textarea id="popDesignHead">${esc(head)}</textarea><label>サブタイトル（改行可）</label><textarea id="popDesignSub">${esc(sub)}</textarea><label>プレゼント内容（改行可）</label><textarea id="popDesignGift">${esc(gift)}</textarea><label>文字揃え</label><div class="seg">${['left','center','right'].map(v=>`<button class="${popAlign===v?'active':''}" onclick="setPopAlign('${v}')">${v==='left'?'左':v==='center'?'中央':'右'}</button>`).join('')}</div><label>タイトルの大きさ</label><div class="seg">${['small','medium','large'].map(v=>`<button class="${popFont===v?'active':''}" onclick="setPopFont('${v}')">${v==='small'?'小':v==='medium'?'標準':'大'}</button>`).join('')}</div><div class="actions"><button class="btn" onclick="savePopDesignText()">保存して反映</button><button class="btn btn2" onclick="downloadPop()">POP画像を保存</button></div></div>`;return}
+if(tab==='popdesign'){const head=contents.pop?.headline||selected.title,sub=contents.pop?.subheadline||selected.catch,gift=contents.pop?.gift_display||selected.gift,fs=fontScale(popFont);$('result').innerHTML=`<div class="popPreview">${imageSrc?`<img class="popBg" src="${imageSrc}">`:''}<div class="popVeil" style="${
+  popVeilTone==='dark'
+    ? `background:rgba(20,18,16,${popVeilStrength==='light'?.22:popVeilStrength==='strong'?.58:.40})`
+    : `background:rgba(255,250,244,${popVeilStrength==='light'?.22:popVeilStrength==='strong'?.58:.40})`
+}"></div><div class="popOverlayMain"><div class="popText"
+  onpointerdown="startDrag(event,'popTitle')"
+  style="${textPosStyle(popTitleX,popTitleY,popAlign)};color:${popTextColor==='white'?'#ffffff':'#3d372f'}">
+  <div class="popK">MONTHLY PRESENT</div>
+  <div class="popH" style="font-size:calc(clamp(24px,4.8vw,44px) * ${fs})">
+    ${esc(head).replace(/\n/g,'<br>')}
+  </div>
+</div>
+
+<div class="popText"
+  onpointerdown="startDrag(event,'popSub')"
+  style="${textPosStyle(popSubX,popSubY,popAlign)};color:${popTextColor==='white'?'#ffffff':'#3d372f'}">
+  <div class="popSub">${esc(sub).replace(/\n/g,'<br>')}</div>
+</div>
+
+<div class="popText"
+  onpointerdown="startDrag(event,'popGift')"
+  style="${textPosStyle(popGiftX,popGiftY,popAlign)};color:${popTextColor==='white'?'#ffffff':'#3d372f'}">
+  <div class="popGift">${esc(gift).replace(/\n/g,'<br>')}</div>
+</div>
+
+<div class="popText"
+  onpointerdown="startDrag(event,'popFooter')"
+  style="${textPosStyle(popFooterX,popFooterY,popAlign)};color:${popTextColor==='white'?'#ffffff':'#3d372f'}">
+  <div class="popFoot">
+    ${fmtDate($('start').value)}〜${fmtDate($('end').value)}<br>
+    ${esc($('target').value)} ／ ${esc($('conditions').value)}
+  </div>
+  <div class="popBrand">${esc(salon.salon_name)}</div>
+</div></div></div><div class="controlBox"><h4 class="sectionTitle">POPの文字を調整</h4><p class="helper">プレビュー上の文字をマウス（スマホは指）でつかんで、好きな位置へ移動できます。文字揃えは位置とは別に変更できます。</p><label>タイトル（改行可）</label><textarea id="popDesignHead">${esc(head)}</textarea><label>サブタイトル（改行可）</label><textarea id="popDesignSub">${esc(sub)}</textarea><label>プレゼント内容（改行可）</label><textarea id="popDesignGift">${esc(gift)}</textarea><label>文字揃え</label><div class="seg">${['left','center','right'].map(v=>`<button class="${popAlign===v?'active':''}" onclick="setPopAlign('${v}')">${v==='left'?'左':v==='center'?'中央':'右'}</button>`).join('')}</div><label>タイトルの大きさ</label><div class="seg">${['small','medium','large'].map(v=>`<button class="${popFont===v?'active':''}" onclick="setPopFont('${v}')">${v==='small'?'小':v==='medium'?'標準':'大'}</button>`).join('')}</div><label>文字色</label>
+<div class="seg">
+  <button class="${popTextColor==='dark'?'active':''}"
+    onclick="popTextColor='dark';render()">濃い文字</button>
+  <button class="${popTextColor==='white'?'active':''}"
+    onclick="popTextColor='white';render()">白文字</button>
+</div>
+
+<label>背景ベール</label>
+<div class="seg">
+  <button class="${popVeilTone==='light'?'active':''}"
+    onclick="popVeilTone='light';render()">明るい</button>
+  <button class="${popVeilTone==='dark'?'active':''}"
+    onclick="popVeilTone='dark';render()">暗い</button>
+</div>
+
+<label>ベールの濃さ</label>
+<div class="seg">
+  <button class="${popVeilStrength==='light'?'active':''}"
+    onclick="popVeilStrength='light';render()">薄め</button>
+  <button class="${popVeilStrength==='medium'?'active':''}"
+    onclick="popVeilStrength='medium';render()">標準</button>
+  <button class="${popVeilStrength==='strong'?'active':''}"
+    onclick="popVeilStrength='strong';render()">濃いめ</button>
+</div><div class="actions"><button class="btn" onclick="savePopDesignText()">保存して反映</button><button class="btn btn2" onclick="downloadPop()">POP画像を保存</button></div></div>`;return}
 if(tab==='image'){const showText=instaTextMode!=='none',showGift=instaTextMode==='titleGift',labels=['人物・施術','サロン空間','イメージビジュアル'],candidateHtml=imageCandidates.length?`<h4 class="sectionTitle">AI画像候補</h4>${imageCandidateLabels.some(label=>label.includes('代替案'))?`
 <p class="helper" style="color:#8a5a44">
 一部の人物・施術画像が生成できなかったため、
@@ -114,7 +190,18 @@ window.savePopEdit=async()=>{contents.pop={...contents.pop,headline:$('popHead')
 window.saveLineEdit=async()=>{contents.line={title:$('lineTitle').value,body:$('lineBody').value};await saveVersion('line',contents.line.title,contents.line.body,[]);render()};
 window.saveInstaTextEdit=async()=>{const tags=$('instaTags').value.split(/\s+/).filter(Boolean).map(x=>x.replace(/^#/,''));contents.instagram={caption:$('instaBody').value,hashtags:tags};await saveVersion('instagram',selected.title,contents.instagram.caption,tags);render()};
 window.setPopAlign=v=>{popAlign=v;render()};window.setPopFont=v=>{popFont=v;render()};
-window.savePopDesignText=async()=>{contents.pop={...contents.pop,headline:$('popDesignHead').value,subheadline:$('popDesignSub').value,gift_display:$('popDesignGift').value,layout:{x:Math.round(popX*10)/10,y:Math.round(popY*10)/10,align:popAlign,font:popFont}};await saveVersion('pop',contents.pop.headline,JSON.stringify(contents.pop),[]);overlayTitle=contents.pop.headline;overlayGift=contents.pop.gift_display||selected.gift;render()};
+window.savePopDesignText=async()=>{contents.pop={...contents.pop,headline:$('popDesignHead').value,subheadline:$('popDesignSub').value,gift_display:$('popDesignGift').value,layout:{
+  titleX:Math.round(popTitleX*10)/10,
+  titleY:Math.round(popTitleY*10)/10,
+  subX:Math.round(popSubX*10)/10,
+  subY:Math.round(popSubY*10)/10,
+  giftX:Math.round(popGiftX*10)/10,
+  giftY:Math.round(popGiftY*10)/10,
+  footerX:Math.round(popFooterX*10)/10,
+  footerY:Math.round(popFooterY*10)/10,
+  align:popAlign,
+  font:popFont
+}};await saveVersion('pop',contents.pop.headline,JSON.stringify(contents.pop),[]);overlayTitle=contents.pop.headline;overlayGift=contents.pop.gift_display||selected.gift;render()};
 window.setRevision=t=>{const e=$('rev');if(e)e.value=t};
 async function generateOneImage(revision,variant){const j=await api('/api/image',{prompt:contents.image?.prompt_ja||`${selected.title} ${selected.gift}`,revision,variant});return j.image_base64?`data:image/png;base64,${j.image_base64}`:j.image_url}
 window.generateCandidates=async()=>{
@@ -205,7 +292,14 @@ instaGiftY:Math.round(instaGiftY*10)/10,
 instaFooterX:Math.round(instaFooterX*10)/10,
 instaFooterY:Math.round(instaFooterY*10)/10,
 instaAlign};const{error}=await sb.from('promotion_images').update({generation_instruction:JSON.stringify(meta)}).eq('id',cur.id);if(error)throw error}$('saveMsg').textContent='画像の文字設定を保存しました。';$('saveMsg').className='ok';render()}catch(e){$('saveMsg').textContent=e.message;$('saveMsg').className='error'}};
-window.openPromo=async id=>{const{data:p,error}=await sb.from('promotions').select('*').eq('id',id).single();if(error)return alert(error.message);currentPromoId=id;selected=p.selected_plan||{title:p.theme,gift:p.gift_request,catch:''};outputs=p.requested_outputs||[];$('start').value=p.start_date;$('end').value=p.end_date;$('theme').value=p.theme||'';$('gift').value=p.gift_request||'';$('target').value=p.target||'';$('conditions').value=p.conditions||'';contents={};const{data:cs}=await sb.from('promotion_contents').select('*').eq('promotion_id',id).eq('is_current',true);for(const c of cs||[]){if(c.content_type==='pop'){try{contents.pop=JSON.parse(c.body)}catch{contents.pop={headline:c.title||'',subheadline:'',body:c.body,footer:''}}}if(c.content_type==='line')contents.line={title:c.title||'',body:c.body};if(c.content_type==='instagram')contents.instagram={caption:c.body,hashtags:c.hashtags||[]}}if((outputs.includes('image')||outputs.includes('pop'))&&!contents.image)contents.image={prompt_ja:`${selected.title} ${selected.gift} 女性向けエステサロンの上品な施術イメージ`};popX=Number(contents.pop?.layout?.x)||50;popY=Number(contents.pop?.layout?.y)||50;popAlign=contents.pop?.layout?.align||'center';popFont=contents.pop?.layout?.font||'medium';overlayTitle=contents.pop?.headline||selected.title;overlayGift=contents.pop?.gift_display||selected.gift;overlayFooter=`${fmtDate($('start').value)}〜${fmtDate($('end').value)} ／ ${$('conditions').value}`;instaTextMode='titleGift';
+window.openPromo=async id=>{const{data:p,error}=await sb.from('promotions').select('*').eq('id',id).single();if(error)return alert(error.message);currentPromoId=id;selected=p.selected_plan||{title:p.theme,gift:p.gift_request,catch:''};outputs=p.requested_outputs||[];$('start').value=p.start_date;$('end').value=p.end_date;$('theme').value=p.theme||'';$('gift').value=p.gift_request||'';$('target').value=p.target||'';$('conditions').value=p.conditions||'';contents={};const{data:cs}=await sb.from('promotion_contents').select('*').eq('promotion_id',id).eq('is_current',true);for(const c of cs||[]){if(c.content_type==='pop'){try{contents.pop=JSON.parse(c.body)}catch{contents.pop={headline:c.title||'',subheadline:'',body:c.body,footer:''}}}if(c.content_type==='line')contents.line={title:c.title||'',body:c.body};if(c.content_type==='instagram')contents.instagram={caption:c.body,hashtags:c.hashtags||[]}}if((outputs.includes('image')||outputs.includes('pop'))&&!contents.image)contents.image={prompt_ja:`${selected.title} ${selected.gift} 女性向けエステサロンの上品な施術イメージ`};popTitleX=Number(contents.pop?.layout?.titleX ?? contents.pop?.layout?.x)||50;
+popTitleY=Number(contents.pop?.layout?.titleY ?? contents.pop?.layout?.y)||28;
+popSubX=Number(contents.pop?.layout?.subX)||50;
+popSubY=Number(contents.pop?.layout?.subY)||43;
+popGiftX=Number(contents.pop?.layout?.giftX)||50;
+popGiftY=Number(contents.pop?.layout?.giftY)||62;
+popFooterX=Number(contents.pop?.layout?.footerX)||50;
+popFooterY=Number(contents.pop?.layout?.footerY)||82;popAlign=contents.pop?.layout?.align||'center';popFont=contents.pop?.layout?.font||'medium';overlayTitle=contents.pop?.headline||selected.title;overlayGift=contents.pop?.gift_display||selected.gift;overlayFooter=`${fmtDate($('start').value)}〜${fmtDate($('end').value)} ／ ${$('conditions').value}`;instaTextMode='titleGift';
 instaTitleX=50;instaTitleY=28;
 instaGiftX=50;instaGiftY=58;
 instaFooterX=50;instaFooterY=84;
@@ -220,7 +314,175 @@ function drawCover(ctx,im,w,h){const s=Math.max(w/im.width,h/im.height),sw=im.wi
 function wrapLines(ctx,text,maxWidth){const all=[];for(const para of String(text||'').split('\n')){let line='';for(const ch of[...para]){if(ctx.measureText(line+ch).width>maxWidth&&line){all.push(line);line=ch}else line+=ch}all.push(line)}return all}
 function drawTextBlock(ctx,text,x,y,size,maxWidth,lineH,align,font='sans-serif',weight='400'){ctx.font=`${weight} ${size}px ${font}`;ctx.textAlign=align;const lines=wrapLines(ctx,text,maxWidth);lines.forEach((line,i)=>ctx.fillText(line,x,y+i*lineH));return y+lines.length*lineH}
 async function loadCanvasImage(src){return new Promise((resolve,reject)=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>resolve(im);im.onerror=reject;im.src=src})}
-window.downloadPop=async()=>{const w=1240,h=1754,c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d');ctx.fillStyle='#f1ece6';ctx.fillRect(0,0,w,h);if(imageSrc){const im=await loadCanvasImage(imageSrc);drawCover(ctx,im,w,h)}ctx.fillStyle='rgba(255,250,244,.42)';ctx.fillRect(0,0,w,h);const align=popAlign,scale=fontScale(popFont),head=contents.pop?.headline||selected.title,sub=contents.pop?.subheadline||selected.catch,gift=contents.pop?.gift_display||selected.gift,maxWidth=1016,headSize=62*scale;ctx.fillStyle='#3d372f';ctx.font=`600 ${headSize}px serif`;const hL=wrapLines(ctx,head,maxWidth);ctx.font='400 31px sans-serif';const sL=wrapLines(ctx,sub,maxWidth);ctx.font='600 45px serif';const gL=wrapLines(ctx,gift,maxWidth);const totalH=34+hL.length*(headSize*1.18)+28+sL.length*44+38+gL.length*56+160;const centerX=popX/100*w,boxLeft=centerX-maxWidth/2,boxRight=centerX+maxWidth/2,x=align==='left'?boxLeft:align==='right'?boxRight:centerX;let y=popY/100*h-totalH/2;y=clamp(y,55,h-totalH-55);ctx.textAlign=align;ctx.font='25px sans-serif';ctx.fillStyle='#766651';ctx.fillText('MONTHLY PRESENT',x,y);y+=58;ctx.fillStyle='#3d372f';y=drawTextBlock(ctx,head,x,y,headSize,maxWidth,headSize*1.18,align,'serif','600')+18;y=drawTextBlock(ctx,sub,x,y,31,maxWidth,44,align)+28;ctx.strokeStyle='#917d64';ctx.beginPath();ctx.moveTo(boxLeft+140,y);ctx.lineTo(boxRight-140,y);ctx.stroke();y+=45;y=drawTextBlock(ctx,gift,x,y,45,820,56,align,'serif','600')+25;ctx.beginPath();ctx.moveTo(boxLeft+140,y);ctx.lineTo(boxRight-140,y);ctx.stroke();y+=55;ctx.font='26px sans-serif';ctx.fillText(`${fmtDate($('start').value)}〜${fmtDate($('end').value)}`,x,y);y+=42;ctx.font='23px sans-serif';ctx.fillText(`${$('target').value} ／ ${$('conditions').value}`,x,y);y+=44;ctx.fillText(salon.salon_name,x,y);const a=document.createElement('a');a.download=`${selected.title||'salon-pop'}.png`;a.href=c.toDataURL('image/png');a.click()};
+window.downloadPop=async()=>{
+  const w=1240,h=1754;
+  const c=document.createElement('canvas');
+  c.width=w;c.height=h;
+  const ctx=c.getContext('2d');
+
+  ctx.fillStyle='#f1ece6';
+  ctx.fillRect(0,0,w,h);
+
+  if(imageSrc){
+    const im=await loadCanvasImage(imageSrc);
+    drawCover(ctx,im,w,h);
+  }
+
+  const veilAlpha=
+    popVeilStrength==='light' ? 0.22 :
+    popVeilStrength==='strong' ? 0.58 :
+    0.40;
+
+  ctx.fillStyle=
+    popVeilTone==='dark'
+      ? `rgba(20,18,16,${veilAlpha})`
+      : `rgba(255,250,244,${veilAlpha})`;
+
+  ctx.fillRect(0,0,w,h);
+
+  const align=popAlign;
+  const scale=fontScale(popFont);
+  const head=contents.pop?.headline||selected.title;
+  const sub=contents.pop?.subheadline||selected.catch;
+  const gift=contents.pop?.gift_display||selected.gift;
+
+  const textColor=
+    popTextColor==='white' ? '#ffffff' : '#3d372f';
+
+  const accentColor=
+    popTextColor==='white'
+      ? 'rgba(255,255,255,.78)'
+      : '#766651';
+
+  const maxWidth=1016;
+
+  const calcX=(posX,width=maxWidth)=>{
+    const centerX=posX/100*w;
+    const left=centerX-width/2;
+    const right=centerX+width/2;
+    return align==='left' ? left :
+           align==='right' ? right :
+           centerX;
+  };
+
+  ctx.textAlign=align;
+  ctx.fillStyle=textColor;
+  ctx.shadowColor=popTextColor==='white'?'rgba(0,0,0,.4)':'rgba(255,255,255,.22)';
+  ctx.shadowBlur=10;
+
+  /* タイトル */
+  const headSize=62*scale;
+  ctx.font=`600 ${headSize}px serif`;
+
+  const headLines=wrapLines(ctx,head,maxWidth);
+  const headH=headLines.length*(headSize*1.18)+58;
+
+  const titleX=calcX(popTitleX);
+  let titleY=popTitleY/100*h-headH/2;
+  titleY=clamp(titleY,55,h-headH-55);
+
+  ctx.font='25px sans-serif';
+  ctx.fillStyle=accentColor;
+  ctx.fillText('MONTHLY PRESENT',titleX,titleY);
+
+  titleY+=58;
+  ctx.fillStyle=textColor;
+
+  drawTextBlock(
+    ctx,
+    head,
+    titleX,
+    titleY,
+    headSize,
+    maxWidth,
+    headSize*1.18,
+    align,
+    'serif',
+    '600'
+  );
+
+  /* サブコピー */
+  const subX=calcX(popSubX);
+  ctx.font='400 31px sans-serif';
+  const subLines=wrapLines(ctx,sub,maxWidth);
+  const subH=subLines.length*44;
+  let subY=popSubY/100*h-subH/2;
+  subY=clamp(subY,55,h-subH-55);
+
+  drawTextBlock(
+    ctx,
+    sub,
+    subX,
+    subY,
+    31,
+    maxWidth,
+    44,
+    align
+  );
+
+  /* 特典 */
+  const giftWidth=820;
+  const giftX=calcX(popGiftX,giftWidth);
+  ctx.font='600 45px serif';
+  const giftLines=wrapLines(ctx,gift,giftWidth);
+  const giftH=giftLines.length*56;
+  let giftY=popGiftY/100*h-giftH/2;
+  giftY=clamp(giftY,55,h-giftH-55);
+
+  ctx.strokeStyle=accentColor;
+  ctx.beginPath();
+  ctx.moveTo(giftX-giftWidth/2+140,giftY-28);
+  ctx.lineTo(giftX+giftWidth/2-140,giftY-28);
+  ctx.stroke();
+
+  drawTextBlock(
+    ctx,
+    gift,
+    giftX,
+    giftY,
+    45,
+    giftWidth,
+    56,
+    align,
+    'serif',
+    '600'
+  );
+
+  ctx.beginPath();
+  ctx.moveTo(giftX-giftWidth/2+140,giftY+giftH+20);
+  ctx.lineTo(giftX+giftWidth/2-140,giftY+giftH+20);
+  ctx.stroke();
+
+  /* 期間・条件・サロン名 */
+  const footerX=calcX(popFooterX);
+  let footerY=popFooterY/100*h;
+
+  ctx.fillStyle=textColor;
+  ctx.font='26px sans-serif';
+  ctx.fillText(
+    `${fmtDate($('start').value)}〜${fmtDate($('end').value)}`,
+    footerX,
+    footerY
+  );
+
+  footerY+=42;
+  ctx.font='23px sans-serif';
+  ctx.fillText(
+    `${$('target').value} ／ ${$('conditions').value}`,
+    footerX,
+    footerY
+  );
+
+  footerY+=44;
+  ctx.fillText(salon.salon_name,footerX,footerY);
+
+  ctx.shadowBlur=0;
+
+  const a=document.createElement('a');
+  a.download=`${selected.title||'salon-pop'}.png`;
+  a.href=c.toDataURL('image/png');
+  a.click();
+};
 window.downloadInsta=async()=>{if(!imageSrc)return alert('先に画像を選んでください。');overlayTitle=$('overlayTitle')?.value??overlayTitle;overlayGift=$('overlayGift')?.value??overlayGift;overlayFooter=$('overlayFooter')?.value??overlayFooter;instaTextMode=$('instaMode')?.value??instaTextMode;const w=1200,h=1200,c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d'),im=await loadCanvasImage(imageSrc);drawCover(ctx,im,w,h);if(instaTextMode!=='none'){const grad=ctx.createLinearGradient(0,0,0,h);grad.addColorStop(0,'rgba(20,18,16,.04)');grad.addColorStop(.48,'rgba(20,18,16,.12)');grad.addColorStop(1,'rgba(20,18,16,.72)');ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);const align=instaAlign,maxWidth=1008;
 
 ctx.fillStyle='#fff';
