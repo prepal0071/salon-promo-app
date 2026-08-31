@@ -11,7 +11,6 @@ module.exports = async function (req, res) {
 
     const variants = {
       treatment: `
-treatment: `
 【今回の方向性：人物・施術】
 30〜50代の大人女性が、女性専用エステサロンでプロフェッショナルな美容ケアを受けている場面。
 
