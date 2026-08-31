@@ -159,7 +159,11 @@ ${gift ? `
     onclick="popVeilStrength='medium';render()">標準</button>
   <button class="${popVeilStrength==='strong'?'active':''}"
     onclick="popVeilStrength='strong';render()">濃いめ</button>
-</div><div class="actions"><button class="btn" onclick="savePopDesignText()">保存して反映</button><button class="btn btn2" onclick="downloadPop()">POP画像を保存</button></div></div>`;return}
+</div><div class="actions">
+  <button class="btn" onclick="savePopDesignText()">保存して反映</button>
+  <button class="btn btn2" onclick="restorePopText()">生成時の文章に戻す</button>
+  <button class="btn btn2" onclick="downloadPop()">POP画像を保存</button>
+</div></div>`;return}
 if(tab==='image'){const showText=instaTextMode!=='none',showGift=instaTextMode==='titleGift',labels=['人物・施術','サロン空間','イメージビジュアル'],candidateHtml=imageCandidates.length?`<h4 class="sectionTitle">AI画像候補</h4>${imageCandidateLabels.some(label=>label.includes('代替案'))?`
 <p class="helper" style="color:#8a5a44">
 一部の人物・施術画像が生成できなかったため、
@@ -194,7 +198,11 @@ window.savePopEdit=async()=>{contents.pop={...contents.pop,headline:$('popHead')
 window.saveLineEdit=async()=>{contents.line={title:$('lineTitle').value,body:$('lineBody').value};await saveVersion('line',contents.line.title,contents.line.body,[]);render()};
 window.saveInstaTextEdit=async()=>{const tags=$('instaTags').value.split(/\s+/).filter(Boolean).map(x=>x.replace(/^#/,''));contents.instagram={caption:$('instaBody').value,hashtags:tags};await saveVersion('instagram',selected.title,contents.instagram.caption,tags);render()};
 window.setPopAlign=v=>{popAlign=v;render()};window.setPopFont=v=>{popFont=v;render()};
-window.savePopDesignText=async()=>{contents.pop={...contents.pop,headline:$('popDesignHead').value,subheadline:$('popDesignSub').value,gift_display:$('popDesignGift').value,layout:{
+window.restorePopText=()=>{
+  $('popDesignHead').value=selected.title||'';
+  $('popDesignSub').value=selected.catch||'';
+  $('popDesignGift').value=selected.gift||'';
+};window.savePopDesignText=async()=>{contents.pop={...contents.pop,headline:$('popDesignHead').value,subheadline:$('popDesignSub').value,gift_display:$('popDesignGift').value,layout:{
   titleX:Math.round(popTitleX*10)/10,
   titleY:Math.round(popTitleY*10)/10,
   subX:Math.round(popSubX*10)/10,
@@ -435,8 +443,8 @@ const gift=contents.pop?.gift_display ?? selected.gift;
 
   ctx.strokeStyle=accentColor;
   ctx.beginPath();
-  ctx.moveTo(giftX-giftWidth/2+140,giftY-28);
-  ctx.lineTo(giftX+giftWidth/2-140,giftY-28);
+  ctx.moveTo(giftX-giftWidth/2+140,giftY-50);
+ctx.lineTo(giftX+giftWidth/2-140,giftY-50);
   ctx.stroke();
 
   drawTextBlock(
@@ -453,8 +461,8 @@ const gift=contents.pop?.gift_display ?? selected.gift;
   );
 
   ctx.beginPath();
-  ctx.moveTo(giftX-giftWidth/2+140,giftY+giftH+20);
-  ctx.lineTo(giftX+giftWidth/2-140,giftY+giftH+20);
+  ctx.moveTo(giftX-giftWidth/2+140,giftY+giftH+45);
+  ctx.lineTo(giftX+giftWidth/2-140,giftY+giftH+45);
   ctx.stroke();
 　}
   /* 期間・条件・サロン名 */
