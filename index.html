@@ -423,7 +423,7 @@ const gift=contents.pop?.gift_display ?? selected.gift;
   );
 
   /* 特典 */
-  const giftWidth=820;
+  if(gift){const giftWidth=820;
   const giftX=calcX(popGiftX,giftWidth);
   ctx.font='600 45px serif';
   const giftLines=wrapLines(ctx,gift,giftWidth);
@@ -454,7 +454,7 @@ const gift=contents.pop?.gift_display ?? selected.gift;
   ctx.moveTo(giftX-giftWidth/2+140,giftY+giftH+20);
   ctx.lineTo(giftX+giftWidth/2-140,giftY+giftH+20);
   ctx.stroke();
-
+　}
   /* 期間・条件・サロン名 */
   const footerX=calcX(popFooterX);
   let footerY=popFooterY/100*h;
