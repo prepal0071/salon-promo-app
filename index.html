@@ -24,7 +24,7 @@ textarea{min-height:92px;resize:vertical}.row,.editGrid{display:grid;grid-templa
 .instaTitle{font-family:serif;font-size:clamp(24px,5vw,48px);line-height:1.25;font-weight:600;white-space:pre-line}.instaGift{font-size:clamp(14px,2.4vw,23px);margin-top:10px;white-space:pre-line}.instaFoot{font-size:clamp(11px,1.8vw,16px);margin-top:10px;white-space:pre-line}
 .popPreview{width:min(100%,620px);aspect-ratio:210/297;margin:auto;background:#ddd;position:relative;overflow:hidden;box-shadow:0 8px 30px #0002}.popBg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .popVeil{position:absolute;inset:0;background:rgba(255,250,244,.42)}.popOverlayMain{position:absolute;inset:0;z-index:2;color:#3d372f;pointer-events:none}.popText{position:absolute;width:82%;max-width:82%;transform:translate(-50%,-50%);touch-action:none;cursor:grab;user-select:none;pointer-events:auto}.popText.dragging{cursor:grabbing}
-.popK{font-size:clamp(10px,1.7vw,15px);letter-spacing:.14em;color:#766651;margin-bottom:2%}.popH{font-family:serif;font-size:clamp(24px,4.8vw,44px);line-height:1.2;font-weight:600;white-space:pre-line}
+.popK{font-size:clamp(10px,1.7vw,15px);letter-spacing:.14em;margin-bottom:2%}.popH{font-family:serif;font-size:clamp(24px,4.8vw,44px);line-height:1.2;font-weight:600;white-space:pre-line}
 .popSub{font-size:clamp(12px,2vw,18px);line-height:1.55;margin-top:3%;white-space:pre-line}.popGift{border-top:1px solid #917d64;border-bottom:1px solid #917d64;padding:2.5% 2%;font-family:serif;font-size:clamp(18px,3.2vw,30px);margin-top:4%;white-space:pre-line}
 .popFoot{font-size:clamp(10px,1.7vw,15px);line-height:1.6;margin-top:4%;white-space:pre-line}.popBrand{font-size:clamp(10px,1.6vw,14px);letter-spacing:.12em;color:#665c52;margin-top:2%}
 @media(max-width:760px){.row,.plans,.editGrid,.candidateGrid{grid-template-columns:1fr}.summary{grid-template-columns:1fr}.editGrid .full{grid-column:auto}.item{align-items:flex-start;flex-direction:column}}
@@ -98,7 +98,9 @@ function buildTabs(){const t=[];if(outputs.includes('pop'))t.push(['pop','POP原
 function render(){if(tab==='pop'){$('result').innerHTML=`<h3>POP原稿を編集</h3><label>タイトル（改行可）</label><textarea id="popHead">${esc(contents.pop?.headline||selected.title)}</textarea><label>サブタイトル（改行可）</label><textarea id="popSub">${esc(contents.pop?.subheadline||selected.catch)}</textarea><label>本文</label><textarea id="popBody">${esc(contents.pop?.body||'')}</textarea><label>フッター</label><textarea id="popFooter">${esc(contents.pop?.footer||'')}</textarea><button class="btn" onclick="savePopEdit()">POP原稿を保存</button>`;return}
 if(tab==='line'){$('result').innerHTML=`<h3>LINE配信文を編集</h3><label>タイトル</label><textarea id="lineTitle">${esc(contents.line?.title||'')}</textarea><label>本文</label><textarea id="lineBody" style="min-height:330px">${esc(contents.line?.body||'')}</textarea><button class="btn" onclick="saveLineEdit()">LINEを保存</button>`;return}
 if(tab==='insta'){$('result').innerHTML=`<h3>Instagram投稿文を編集</h3><label>投稿文</label><textarea id="instaBody" style="min-height:420px">${esc(contents.instagram?.caption||'')}</textarea><label>ハッシュタグ</label><textarea id="instaTags">${esc((contents.instagram?.hashtags||[]).map(h=>'#'+h.replace(/^#/,'')).join(' '))}</textarea><button class="btn" onclick="saveInstaTextEdit()">Instagram投稿文を保存</button>`;return}
-if(tab==='popdesign'){const head=contents.pop?.headline||selected.title,sub=contents.pop?.subheadline||selected.catch,gift=contents.pop?.gift_display||selected.gift,fs=fontScale(popFont);$('result').innerHTML=`<div class="popPreview">${imageSrc?`<img class="popBg" src="${imageSrc}">`:''}<div class="popVeil" style="${
+if(tab==='popdesign'){const head=contents.pop?.headline ?? selected.title,
+sub=contents.pop?.subheadline ?? selected.catch,
+gift=contents.pop?.gift_display ?? selected.gift,fs=fontScale(popFont);$('result').innerHTML=`<div class="popPreview">${imageSrc?`<img class="popBg" src="${imageSrc}">`:''}<div class="popVeil" style="${
   popVeilTone==='dark'
     ? `background:rgba(20,18,16,${popVeilStrength==='light'?.22:popVeilStrength==='strong'?.58:.40})`
     : `background:rgba(255,250,244,${popVeilStrength==='light'?.22:popVeilStrength==='strong'?.58:.40})`
@@ -342,9 +344,9 @@ window.downloadPop=async()=>{
 
   const align=popAlign;
   const scale=fontScale(popFont);
-  const head=contents.pop?.headline||selected.title;
-  const sub=contents.pop?.subheadline||selected.catch;
-  const gift=contents.pop?.gift_display||selected.gift;
+  const head=contents.pop?.headline ?? selected.title;
+const sub=contents.pop?.subheadline ?? selected.catch;
+const gift=contents.pop?.gift_display ?? selected.gift;
 
   const textColor=
     popTextColor==='white' ? '#ffffff' : '#3d372f';
