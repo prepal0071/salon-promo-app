@@ -16,7 +16,39 @@ textarea{min-height:92px;resize:vertical}.row,.editGrid{display:grid;grid-templa
 .tab.active,.seg button.active{background:var(--accent);color:#fff}.copy{line-height:1.8;background:#fbfaf8;border:1px solid var(--line);border-radius:12px;padding:16px}
 .check{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:999px;background:#fff}.check input{width:auto}
 .item{padding:14px 0;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}.itemMain{cursor:pointer;flex:1;padding:4px 0}.itemMain:hover{opacity:.78}
-.itemActions{display:flex;gap:8px;flex-shrink:0}.quick,.seg{justify-content:center}.quick button,.seg button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 11px;cursor:pointer}
+.itemActions{display:flex;gap:8px;flex-shrink:0}.quick,.seg{justify-content:center}.controlGrid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+  margin:12px 0;
+}
+
+.controlItem{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:10px;
+  text-align:center;
+}
+
+.controlItem label{
+  display:block;
+  margin:0 0 8px;
+  font-size:13px;
+  font-weight:600;
+  color:var(--muted);
+}
+
+.controlItem .seg{
+  display:flex;
+  justify-content:center;
+  gap:5px;
+  flex-wrap:wrap;
+}
+
+.controlItem .seg button{
+  padding:7px 9px;
+}.quick button,.seg button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 11px;cursor:pointer}
 .controlBox{background:var(--soft);border-radius:12px;padding:14px;margin:14px 0}.sectionTitle{margin:6px 0 2px;font-size:16px}.helper{font-size:13px;color:var(--muted);line-height:1.6}
 .candidateGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}.candidate{border:2px solid transparent;border-radius:14px;padding:8px;background:#fff;cursor:pointer}.candidate.active{border-color:var(--accent)}
 .candidate img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;display:block}.uploadBox{border:1px dashed var(--line);border-radius:12px;padding:14px;background:#fff}
@@ -145,43 +177,76 @@ ${gift ? `
     ${esc($('target').value)} ／ ${esc($('conditions').value)}
   </div>
   <div class="popBrand">${esc(salon.salon_name)}</div>
-</div></div></div><div class="controlBox"><h4 class="sectionTitle">POPの文字を調整</h4><p class="helper">プレビュー上の文字をマウス（スマホは指）でつかんで、好きな位置へ移動できます。文字揃えは位置とは別に変更できます。</p><label>タイトル（改行可）</label><textarea id="popDesignHead">${esc(head)}</textarea><label>サブタイトル（改行可）</label><textarea id="popDesignSub">${esc(sub)}</textarea><label>プレゼント内容（改行可）</label><textarea id="popDesignGift">${esc(gift)}</textarea><label>文字揃え</label><div class="seg">${['left','center','right'].map(v=>`<button class="${popAlign===v?'active':''}" onclick="setPopAlign('${v}')">${v==='left'?'左':v==='center'?'中央':'右'}</button>`).join('')}</div><label>タイトルの大きさ</label><div class="seg">${['small','medium','large'].map(v=>`<button class="${popFont===v?'active':''}" onclick="setPopFont('${v}')">${v==='small'?'小':v==='medium'?'標準':'大'}</button>`).join('')}</div><label>プレゼントの大きさ</label>
-<div class="seg">
-  ${['small','medium','large'].map(v=>`
-    <button
-      class="${popGiftFont===v?'active':''}"
-      onclick="setPopGiftFont('${v}')">
-      ${v==='small'?'小':v==='medium'?'標準':'大'}
-    </button>
-  `).join('')}
-</div><label>文字色</label>
-<div class="seg">
-  <button class="${popTextColor==='dark'?'active':''}"
-    onclick="popTextColor='dark';render()">濃い文字</button>
-  <button class="${popTextColor==='white'?'active':''}"
-    onclick="popTextColor='white';render()">白文字</button>
-</div>
+</div></div></div><div class="controlBox"><h4 class="sectionTitle">POPの文字を調整</h4><p class="helper">プレビュー上の文字をマウス（スマホは指）でつかんで、好きな位置へ移動できます。文字揃えは位置とは別に変更できます。</p><label>タイトル（改行可）</label><textarea id="popDesignHead">${esc(head)}</textarea><label>サブタイトル（改行可）</label><textarea id="popDesignSub">${esc(sub)}</textarea><label>プレゼント内容（改行可）</label><textarea id="popDesignGift">${esc(gift)}</textarea><div class="controlGrid">
 
-<label>背景ベール</label>
-<div class="seg">
-  <button class="${popVeilTone==='light'?'active':''}"
-    onclick="popVeilTone='light';render()">明るい</button>
-  <button class="${popVeilTone==='dark'?'active':''}"
-    onclick="popVeilTone='dark';render()">暗い</button>
-</div>
+  <div class="controlItem">
+    <label>文字揃え</label>
+    <div class="seg">
+      ${['left','center','right'].map(v=>`
+        <button class="${popAlign===v?'active':''}"
+          onclick="setPopAlign('${v}')">
+          ${v==='left'?'左':v==='center'?'中央':'右'}
+        </button>
+      `).join('')}
+    </div>
+  </div>
 
-<label>ベールの濃さ</label>
-<div class="seg">
-  <button class="${popVeilStrength==='light'?'active':''}"
-    onclick="popVeilStrength='light';render()">薄め</button>
-  <button class="${popVeilStrength==='medium'?'active':''}"
-    onclick="popVeilStrength='medium';render()">標準</button>
-  <button class="${popVeilStrength==='strong'?'active':''}"
-    onclick="popVeilStrength='strong';render()">濃いめ</button>
-</div><div class="actions">
-  <button class="btn" onclick="savePopDesignText()">保存して反映</button>
-  <button class="btn btn2" onclick="restorePopText()">生成時の文章に戻す</button>
-  <button class="btn btn2" onclick="downloadPop()">POP画像を保存</button>
+  <div class="controlItem">
+    <label>タイトルサイズ</label>
+    <div class="seg">
+      ${['small','medium','large'].map(v=>`
+        <button class="${popFont===v?'active':''}"
+          onclick="setPopFont('${v}')">
+          ${v==='small'?'小':v==='medium'?'標準':'大'}
+        </button>
+      `).join('')}
+    </div>
+  </div>
+
+  <div class="controlItem">
+    <label>プレゼントサイズ</label>
+    <div class="seg">
+      ${['small','medium','large'].map(v=>`
+        <button class="${popGiftFont===v?'active':''}"
+          onclick="setPopGiftFont('${v}')">
+          ${v==='small'?'小':v==='medium'?'標準':'大'}
+        </button>
+      `).join('')}
+    </div>
+  </div>
+
+  <div class="controlItem">
+    <label>文字色</label>
+    <div class="seg">
+      <button class="${popTextColor==='dark'?'active':''}"
+        onclick="popTextColor='dark';render()">濃い文字</button>
+      <button class="${popTextColor==='white'?'active':''}"
+        onclick="popTextColor='white';render()">白文字</button>
+    </div>
+  </div>
+
+  <div class="controlItem">
+    <label>背景ベール</label>
+    <div class="seg">
+      <button class="${popVeilTone==='light'?'active':''}"
+        onclick="popVeilTone='light';render()">明るい</button>
+      <button class="${popVeilTone==='dark'?'active':''}"
+        onclick="popVeilTone='dark';render()">暗い</button>
+    </div>
+  </div>
+
+  <div class="controlItem">
+    <label>ベール濃さ</label>
+    <div class="seg">
+      <button class="${popVeilStrength==='light'?'active':''}"
+        onclick="popVeilStrength='light';render()">薄め</button>
+      <button class="${popVeilStrength==='medium'?'active':''}"
+        onclick="popVeilStrength='medium';render()">標準</button>
+      <button class="${popVeilStrength==='strong'?'active':''}"
+        onclick="popVeilStrength='strong';render()">濃いめ</button>
+    </div>
+  </div>
+
 </div></div>`;return}
 if(tab==='image'){const showText=instaTextMode!=='none',showGift=instaTextMode==='titleGift',labels=['人物・施術','サロン空間','イメージビジュアル'],candidateHtml=imageCandidates.length?`<h4 class="sectionTitle">AI画像候補</h4>${imageCandidateLabels.some(label=>label.includes('代替案'))?`
 <p class="helper" style="color:#8a5a44">
