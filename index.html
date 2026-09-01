@@ -153,9 +153,8 @@ instaGiftX=50;instaGiftY=58;
 instaFooterX=50;instaFooterY=84;
 instaAlign='center';$('rtitle').textContent=selected.title;buildTabs();show('results')}catch(e){$('confirmMsg').textContent=e.message}};
 function buildTabs(){const t=[];if(outputs.includes('pop'))t.push(['popdesign','POP']);if(outputs.includes('line'))t.push(['line','LINE']);if(outputs.includes('instagram'))t.push(['insta','Instagram']);if(outputs.includes('image')||outputs.includes('pop'))t.push(['image',outputs.includes('image')?'Instagram画像':'画像選択']);$('tabs').innerHTML=t.map((x,i)=>`<button class="tab ${i===0?'active':''}" data-t="${x[0]}">${x[1]}</button>`).join('');tab=t[0]?.[0]||'';document.querySelectorAll('.tab').forEach(x=>x.onclick=()=>{document.querySelectorAll('.tab').forEach(y=>y.classList.remove('active'));x.classList.add('active');tab=x.dataset.t;render()});render()}
-function render(){if(tab==='pop'){$('result').innerHTML=`<h3>POP原稿を編集</h3><label>タイトル（改行可）</label><textarea id="popHead">${esc(contents.pop?.headline||selected.title)}</textarea><label>サブタイトル（改行可）</label><textarea id="popSub">${esc(contents.pop?.subheadline||selected.catch)}</textarea><label>本文</label><textarea id="popBody">${esc(contents.pop?.body||'')}</textarea><label>フッター</label><textarea id="popFooter">${esc(contents.pop?.footer||'')}</textarea><button class="btn" onclick="savePopEdit()">POP原稿を保存</button>`;return}
-if(tab==='line'){$('result').innerHTML=`<h3>LINE配信文を編集</h3><label>タイトル</label><textarea id="lineTitle">${esc(contents.line?.title||'')}</textarea><label>プレゼント内容</label>
-<textarea id="popGiftEdit">${esc(contents.pop?.gift_display ?? selected.gift ?? '')}</textarea><label>本文</label><textarea id="lineBody" style="min-height:330px">${esc(contents.line?.body||'')}</textarea><button class="btn" onclick="saveLineEdit()">LINEを保存</button>`;return}
+function render(){
+if(tab==='line'){$('result').innerHTML=`<h3>LINE配信文を編集</h3><label>タイトル</label><textarea id="lineTitle">${esc(contents.line?.title||'')}</textarea><label>本文</label><textarea id="lineBody" style="min-height:330px">${esc(contents.line?.body||'')}</textarea><button class="btn" onclick="saveLineEdit()">LINEを保存</button>`;return}
 if(tab==='insta'){$('result').innerHTML=`<h3>Instagram投稿文を編集</h3><label>投稿文</label><textarea id="instaBody" style="min-height:420px">${esc(contents.instagram?.caption||'')}</textarea><label>ハッシュタグ</label><textarea id="instaTags">${esc((contents.instagram?.hashtags||[]).map(h=>'#'+h.replace(/^#/,'')).join(' '))}</textarea><button class="btn" onclick="saveInstaTextEdit()">Instagram投稿文を保存</button>`;return}
 if(tab==='popdesign'){const head=contents.pop?.headline ?? selected.title,
 sub=contents.pop?.subheadline ?? selected.catch,
@@ -317,23 +316,7 @@ if(tab==='image'){const showText=instaTextMode!=='none',showGift=instaTextMode==
 </div>
 `:''}</div>`:'<p class="muted">まだ画像は選ばれていません。</p>'}<div class="controlBox"><h4 class="sectionTitle">画像を選ぶ</h4><p class="helper">AIは低画質で「人物・施術」「サロン空間」「イメージビジュアル」の3方向を作ります。</p><div class="quick"><button onclick="setRevision('施術を受けている大人女性を主役にしてください。施術者の手元も自然に見せてください。')">施術シーン</button><button onclick="setRevision('より上質で高級感のあるサロン空間にしてください。')">もっと高級感</button><button onclick="setRevision('全体を明るく、清潔感のある自然光の印象にしてください。')">もっと明るく</button></div><label>画像の追加希望</label><textarea id="rev"></textarea><div class="actions"><button class="btn" onclick="generateCandidates()">方向性の違うAI画像を3候補つくる</button></div><p class="${imageStatus.startsWith('エラー')?'error':'muted'}">${esc(imageStatus)}</p>${candidateHtml}<div class="uploadBox" style="margin-top:18px"><h4 class="sectionTitle">手持ちの画像を使う</h4><p class="helper">サロンで撮影した写真などを背景画像として使用できます。</p><input id="uploadImage" type="file" accept="image/*" onchange="handleUpload(event)"></div></div>${outputs.includes('image')?`<div class="controlBox" style="text-align:left"><h4 class="sectionTitle">Instagram画像の文字</h4><p class="helper">プレビュー上の文字を直接ドラッグして、好きな位置へ移動できます。</p><label>文字表示</label><select id="instaMode" onchange="setInstaMode(this.value)"><option value="none" ${instaTextMode==='none'?'selected':''}>文字なし</option><option value="title" ${instaTextMode==='title'?'selected':''}>タイトルのみ</option><option value="titleGift" ${instaTextMode==='titleGift'?'selected':''}>タイトル＋プレゼント</option></select><label>タイトル（改行可）</label><textarea id="overlayTitle">${esc(overlayTitle)}</textarea><label>プレゼント・補足（改行可）</label><textarea id="overlayGift">${esc(overlayGift)}</textarea><label>下部の案内（改行可）</label><textarea id="overlayFooter">${esc(overlayFooter)}</textarea><label>文字揃え</label><div class="seg">${['left','center','right'].map(v=>`<button class="${instaAlign===v?'active':''}" onclick="setInstaAlign('${v}')">${v==='left'?'左':v==='center'?'中央':'右'}</button>`).join('')}</div><div class="actions"><button class="btn" onclick="saveImageText()">文字を反映・保存</button><button class="btn btn2" onclick="downloadInsta()">Instagram画像を保存</button></div></div>`:''}</div>`}}
 async function saveVersion(type,title,body,hashtags=[]){const{data:cur}=await sb.from('promotion_contents').select('id,version').eq('promotion_id',currentPromoId).eq('content_type',type).eq('is_current',true).order('version',{ascending:false}).limit(1).maybeSingle();if(cur)await sb.from('promotion_contents').update({is_current:false}).eq('id',cur.id);const{error}=await sb.from('promotion_contents').insert({promotion_id:currentPromoId,content_type:type,title,body,hashtags:hashtags||[],version:(cur?.version||0)+1,is_current:true});if(error)throw error;$('saveMsg').textContent='保存しました。';$('saveMsg').className='ok'}
-window.savePopEdit=async()=>{
-  contents.pop={
-    ...contents.pop,
-    headline:$('popHead').value,
-    subheadline:$('popSub').value,
-    body:$('popBody').value,
-    gift_display:$('popGiftEdit').value,
-    footer:$('popFooter').value
-  };
-  await saveVersion(
-    'pop',
-    contents.pop.headline,
-    JSON.stringify(contents.pop),
-    []
-  );
-  render();
-};
+
 window.saveLineEdit=async()=>{contents.line={title:$('lineTitle').value,body:$('lineBody').value};await saveVersion('line',contents.line.title,contents.line.body,[]);render()};
 window.saveInstaTextEdit=async()=>{const tags=$('instaTags').value.split(/\s+/).filter(Boolean).map(x=>x.replace(/^#/,''));contents.instagram={caption:$('instaBody').value,hashtags:tags};await saveVersion('instagram',selected.title,contents.instagram.caption,tags);render()};
 window.setPopAlign=v=>{popAlign=v;render()};window.setPopFont=v=>{popFont=v;render()};window.setPopGiftFont=v=>{popGiftFont=v;render()};
