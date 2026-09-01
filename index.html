@@ -59,8 +59,32 @@ textarea{min-height:92px;resize:vertical}.row,.editGrid{display:grid;grid-templa
 .popPreview{width:min(100%,620px);aspect-ratio:210/297;margin:auto;background:#ddd;position:relative;overflow:hidden;box-shadow:0 8px 30px #0002}.popBg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .popVeil{position:absolute;inset:0;background:rgba(255,250,244,.42)}.popOverlayMain{position:absolute;inset:0;z-index:2;color:#3d372f;pointer-events:none}.popText{position:absolute;width:82%;max-width:82%;transform:translate(-50%,-50%);touch-action:none;cursor:grab;user-select:none;pointer-events:auto}.popText.dragging{cursor:grabbing}
 .popK{font-size:clamp(10px,1.7vw,15px);letter-spacing:.14em;margin-bottom:2%}.popH{font-family:serif;font-size:clamp(24px,4.8vw,44px);line-height:1.2;font-weight:600;white-space:pre-line}
-.popSub{font-size:clamp(12px,2vw,18px);line-height:1.55;margin-top:3%;white-space:pre-line}.popGift{border-top:1px solid #917d64;border-bottom:1px solid #917d64;padding:2.5% 2%;font-family:serif;font-size:clamp(16px,2.7vw,25px);
-line-height:1.45;margin-top:4%;white-space:pre-line}
+.popSub{font-size:clamp(12px,2vw,18px);line-height:1.55;margin-top:3%;white-space:pre-line}.popGift{
+  border:0;
+  padding:0 2%;
+  font-family:serif;
+  font-size:clamp(16px,2.7vw,25px);
+  line-height:1.45;
+  margin-top:4%;
+  white-space:pre-line;
+}
+
+.popGift::before,
+.popGift::after{
+  content:"";
+  display:block;
+  height:1px;
+  background:currentColor;
+  opacity:.45;
+}
+
+.popGift::before{
+  margin-bottom:18px;
+}
+
+.popGift::after{
+  margin-top:18px;
+}
 .popFoot{font-size:clamp(10px,1.7vw,15px);line-height:1.6;margin-top:4%;white-space:pre-line}.popBrand{font-size:clamp(10px,1.6vw,14px);letter-spacing:.12em;color:#665c52;margin-top:2%}
 @media(max-width:760px){.row,.plans,.editGrid,.candidateGrid{grid-template-columns:1fr}.summary{grid-template-columns:1fr}.editGrid .full{grid-column:auto}.item{align-items:flex-start;flex-direction:column}}
 </style></head><body><main class="wrap"><div class="head"><div><h2 style="margin:0">月間サロン販促メーカー</h2><div id="salonName" class="muted">テスト版</div></div><button id="logout" class="btn btn2 hide">ログアウト</button></div><section id="login" class="card"><h2>ログイン</h2><label>メールアドレス</label><input id="email" type="email"><label>パスワード</label><input id="password" type="password"><p id="loginMsg"></p><div class="actions"><button id="loginBtn" class="btn">ログイン</button><button id="signupBtn" class="btn btn2">新規登録</button></div><button id="forgotBtn" class="linkbtn">パスワードを忘れた方</button></section><section id="forgot" class="card hide"><h2>パスワード再設定</h2><label>メールアドレス</label><input id="resetEmail" type="email"><p id="forgotMsg"></p><div class="actions"><button id="sendReset" class="btn">再設定メールを送る</button><button id="backLogin" class="btn btn2">ログインへ戻る</button></div></section><section id="newPassword" class="card hide"><h2>新しいパスワードを設定</h2><label>新しいパスワード</label><input id="newPass1" type="password"><label>新しいパスワード（確認）</label><input id="newPass2" type="password"><p id="newPassMsg"></p><button id="saveNewPass" class="btn">パスワードを変更</button></section><section id="setup" class="card hide"><h2 id="setupTitle">サロン初期設定</h2><label>サロン名</label><input id="sname"><label>コンセプト</label><textarea id="concept"></textarea><label>主なお客様</label><input id="customer" value="30〜50代女性"><p id="setupMsg"></p><div class="actions"><button id="setupSave" class="btn">保存</button><button id="setupCancel" class="btn btn2 hide">キャンセル</button></div></section><section id="home" class="hide"><div class="card hero"><h2>今月の販促を、まとめて作成</h2><div class="actions" style="justify-content:center"><button id="newBtn" class="btn">＋ 新しい販促をつくる</button><button id="editSalonBtn" class="btn btn2">サロン情報を編集</button></div></div><div class="card"><h3>最近作った販促</h3><p class="muted">過去の販促は再編集できます。不要になったものは削除できます。</p><div id="history"></div></div></section><section id="form" class="card hide"><h2>今月は、どんな企画にしますか？</h2><div class="row"><div><label>開始日</label><input id="start" type="date" value="2026-09-01"></div><div><label>終了日</label><input id="end" type="date" value="2026-09-30"></div></div><label>希望テーマ</label><input id="theme" value="夏の頭の疲れ"><label>プレゼント内容</label><input id="gift" value="提案希望"><label>対象者</label><input id="target" value="ご来店のお客様全員"><label>条件</label><input id="conditions" value="お一人様1回限り"><label>今回作成するもの</label><div class="checks"><label class="check"><input id="outPop" type="checkbox" checked>店内POP</label><label class="check"><input id="outLine" type="checkbox" checked>LINE配信文</label><label class="check"><input id="outInsta" type="checkbox" checked>Instagram投稿文</label><label class="check"><input id="outImage" type="checkbox" checked>Instagram画像</label></div><div class="row"><div><label>LINEの絵文字</label><select id="lineEmoji"><option value="none">なし</option><option value="low" selected>控えめ</option><option value="standard">標準</option><option value="high">多め</option></select></div><div><label>Instagramの絵文字</label><select id="instaEmoji"><option value="none">なし</option><option value="low" selected>控えめ</option><option value="standard">標準</option><option value="high">多め</option></select></div></div><p id="formMsg"></p><div class="actions"><button id="propose" class="btn">AIに販促プランを提案してもらう</button><button id="homeBtn" class="btn btn2">HOME</button></div></section><section id="plansSec" class="hide"><h2>AIから3つの販促プラン</h2><div id="plans" class="plans"></div><div class="card"><label>こんな感じにしたい</label><textarea id="note"></textarea><div class="actions"><button id="regen" class="btn">希望を反映して再提案</button><button id="backForm" class="btn btn2">入力に戻る</button></div></div></section><section id="confirm" class="card hide"><h2>この内容で作成します</h2><div id="summary" class="summary"></div><p id="confirmMsg"></p><div class="actions"><button id="make" class="btn">選んだ販促物を作成</button><button id="backPlans" class="btn btn2">企画に戻る</button></div></section><section id="results" class="hide"><h2 id="rtitle">販促セット</h2><div id="tabs" class="tabs"></div><div class="card"><div id="result" class="copy"></div><p id="saveMsg"></p><div class="actions"><button id="done" class="btn btn2">HOME</button></div></div></section></main><script>
