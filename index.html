@@ -177,7 +177,18 @@ ${gift ? `
     ${esc($('target').value)} ／ ${esc($('conditions').value)}
   </div>
   <div class="popBrand">${esc(salon.salon_name)}</div>
-</div></div></div><div class="controlBox"><h4 class="sectionTitle">POPの文字を調整</h4><p class="helper">プレビュー上の文字をマウス（スマホは指）でつかんで、好きな位置へ移動できます。文字揃えは位置とは別に変更できます。</p><label>タイトル（改行可）</label><textarea id="popDesignHead">${esc(head)}</textarea><label>サブタイトル（改行可）</label><textarea id="popDesignSub">${esc(sub)}</textarea><label>プレゼント内容（改行可）</label><textarea id="popDesignGift">${esc(gift)}</textarea><div class="controlGrid">
+</div></div></div><div class="controlBox"><h4 class="sectionTitle">POPの文字を調整</h4><p class="helper">プレビュー上の文字をマウス（スマホは指）でつかんで、好きな位置へ移動できます。文字揃えは位置とは別に変更できます。</p><details class="textEditAccordion">
+  <summary>テキストを編集</summary>
+
+  <label>タイトル（改行可）</label>
+  <textarea id="popDesignHead">${esc(head)}</textarea>
+
+  <label>サブタイトル（改行可）</label>
+  <textarea id="popDesignSub">${esc(sub)}</textarea>
+
+  <label>プレゼント内容（改行可）</label>
+  <textarea id="popDesignGift">${esc(gift)}</textarea>
+</details><div class="controlGrid">
 
   <div class="controlItem">
     <label>文字揃え</label>
@@ -246,7 +257,11 @@ ${gift ? `
         onclick="popVeilStrength='strong';render()">濃いめ</button>
     </div>
   </div>
-
+<div class="actions">
+  <button class="btn" onclick="savePopDesignText()">保存して反映</button>
+  <button class="btn btn2" onclick="restorePopText()">生成時の文章に戻す</button>
+  <button class="btn btn2" onclick="downloadPop()">POP画像を保存</button>
+</div>
 </div></div>`;return}
 if(tab==='image'){const showText=instaTextMode!=='none',showGift=instaTextMode==='titleGift',labels=['人物・施術','サロン空間','イメージビジュアル'],candidateHtml=imageCandidates.length?`<h4 class="sectionTitle">AI画像候補</h4>${imageCandidateLabels.some(label=>label.includes('代替案'))?`
 <p class="helper" style="color:#8a5a44">
