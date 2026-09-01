@@ -1,4 +1,6 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>月間サロン販促メーカー</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><style>
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>月間サロン販促メーカー</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
 :root{--bg:#f7f3ee;--ink:#3d372f;--muted:#7a7168;--line:#ded6cd;--accent:#7f8f72;--gold:#a88c64;--soft:#eee8e0}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic",Meiryo,sans-serif}
 .wrap{max-width:980px;margin:auto;padding:28px 18px 50px}.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;gap:12px}
@@ -327,173 +329,36 @@ function wrapLines(ctx,text,maxWidth){const all=[];for(const para of String(text
 function drawTextBlock(ctx,text,x,y,size,maxWidth,lineH,align,font='sans-serif',weight='400'){ctx.font=`${weight} ${size}px ${font}`;ctx.textAlign=align;const lines=wrapLines(ctx,text,maxWidth);lines.forEach((line,i)=>ctx.fillText(line,x,y+i*lineH));return y+lines.length*lineH}
 async function loadCanvasImage(src){return new Promise((resolve,reject)=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>resolve(im);im.onerror=reject;im.src=src})}
 window.downloadPop=async()=>{
-  const w=1240,h=1754;
-  const c=document.createElement('canvas');
-  c.width=w;c.height=h;
-  const ctx=c.getContext('2d');
+  const el=document.querySelector('.popPreview');
 
-  ctx.fillStyle='#f1ece6';
-  ctx.fillRect(0,0,w,h);
-
-  if(imageSrc){
-    const im=await loadCanvasImage(imageSrc);
-    drawCover(ctx,im,w,h);
+  if(!el){
+    return alert('POPプレビューが見つかりません。');
   }
 
-  const veilAlpha=
-    popVeilStrength==='light' ? 0.22 :
-    popVeilStrength==='strong' ? 0.58 :
-    0.40;
+  try{
+    if(document.fonts?.ready){
+      await document.fonts.ready;
+    }
 
-  ctx.fillStyle=
-    popVeilTone==='dark'
-      ? `rgba(20,18,16,${veilAlpha})`
-      : `rgba(255,250,244,${veilAlpha})`;
+    const scale=1240/el.getBoundingClientRect().width;
 
-  ctx.fillRect(0,0,w,h);
+    const canvas=await html2canvas(el,{
+      scale:scale,
+      useCORS:true,
+      allowTaint:false,
+      backgroundColor:null,
+      logging:false
+    });
 
-  const align=popAlign;
-  const scale=fontScale(popFont);
-  const head=contents.pop?.headline ?? selected.title;
-const sub=contents.pop?.subheadline ?? selected.catch;
-const gift=contents.pop?.gift_display ?? selected.gift;
+    const a=document.createElement('a');
+    a.download=`${selected.title||'salon-pop'}.png`;
+    a.href=canvas.toDataURL('image/png');
+    a.click();
 
-  const textColor=
-    popTextColor==='white' ? '#ffffff' : '#3d372f';
-
-  const accentColor=
-    popTextColor==='white'
-      ? 'rgba(255,255,255,.78)'
-      : '#766651';
-
-  const maxWidth=1016;
-
-  const calcX=(posX,width=maxWidth)=>{
-    const centerX=posX/100*w;
-    const left=centerX-width/2;
-    const right=centerX+width/2;
-    return align==='left' ? left :
-           align==='right' ? right :
-           centerX;
-  };
-
-  ctx.textAlign=align;
-  ctx.fillStyle=textColor;
-  ctx.shadowColor=popTextColor==='white'?'rgba(0,0,0,.4)':'rgba(255,255,255,.22)';
-  ctx.shadowBlur=10;
-
-  /* タイトル */
-  const headSize=62*scale;
-  ctx.font=`600 ${headSize}px serif`;
-
-  const headLines=wrapLines(ctx,head,maxWidth);
-  const headH=headLines.length*(headSize*1.18)+58;
-
-  const titleX=calcX(popTitleX);
-  let titleY=popTitleY/100*h-headH/2;
-  titleY=clamp(titleY,55,h-headH-55);
-
-  ctx.font='25px sans-serif';
-  ctx.fillStyle=accentColor;
-  ctx.fillText('MONTHLY PRESENT',titleX,titleY);
-
-  titleY+=58;
-  ctx.fillStyle=textColor;
-
-  drawTextBlock(
-    ctx,
-    head,
-    titleX,
-    titleY,
-    headSize,
-    maxWidth,
-    headSize*1.18,
-    align,
-    'serif',
-    '600'
-  );
-
-  /* サブコピー */
-  const subX=calcX(popSubX);
-  ctx.font='400 31px sans-serif';
-  const subLines=wrapLines(ctx,sub,maxWidth);
-  const subH=subLines.length*44;
-  let subY=popSubY/100*h-subH/2;
-  subY=clamp(subY,55,h-subH-55);
-
-  drawTextBlock(
-    ctx,
-    sub,
-    subX,
-    subY,
-    31,
-    maxWidth,
-    44,
-    align
-  );
-
-  /* 特典 */
-  if(gift){const giftWidth=820;
-  const giftX=calcX(popGiftX,giftWidth);
-  ctx.font='600 45px serif';
-  const giftLines=wrapLines(ctx,gift,giftWidth);
-  const giftH=giftLines.length*56;
-  let giftY=popGiftY/100*h-giftH/2;
-  giftY=clamp(giftY,55,h-giftH-55);
-
-  ctx.strokeStyle=accentColor;
-  ctx.beginPath();
-  ctx.moveTo(giftX-giftWidth/2+140,giftY-75);
-　ctx.lineTo(giftX+giftWidth/2-140,giftY-75);
-  ctx.stroke();
-
-  drawTextBlock(
-    ctx,
-    gift,
-    giftX,
-    giftY,
-    40,
-    giftWidth,
-    54,
-    align,
-    'serif',
-    '600'
-  );
-
-  ctx.beginPath();
-  ctx.moveTo(giftX-giftWidth/2+140,giftY+giftH+5);
-  ctx.lineTo(giftX+giftWidth/2-140,giftY+giftH+5);
-  ctx.stroke();
-　}
-  /* 期間・条件・サロン名 */
-  const footerX=calcX(popFooterX);
-  let footerY=popFooterY/100*h;
-
-  ctx.fillStyle=textColor;
-  ctx.font='26px sans-serif';
-  ctx.fillText(
-    `${fmtDate($('start').value)}〜${fmtDate($('end').value)}`,
-    footerX,
-    footerY
-  );
-
-  footerY+=42;
-  ctx.font='23px sans-serif';
-  ctx.fillText(
-    `${$('target').value} ／ ${$('conditions').value}`,
-    footerX,
-    footerY
-  );
-
-  footerY+=44;
-  ctx.fillText(salon.salon_name,footerX,footerY);
-
-  ctx.shadowBlur=0;
-
-  const a=document.createElement('a');
-  a.download=`${selected.title||'salon-pop'}.png`;
-  a.href=c.toDataURL('image/png');
-  a.click();
+  }catch(e){
+    console.error(e);
+    alert('POP画像を保存できませんでした。');
+  }
 };
 window.downloadInsta=async()=>{if(!imageSrc)return alert('先に画像を選んでください。');overlayTitle=$('overlayTitle')?.value??overlayTitle;overlayGift=$('overlayGift')?.value??overlayGift;overlayFooter=$('overlayFooter')?.value??overlayFooter;instaTextMode=$('instaMode')?.value??instaTextMode;const w=1200,h=1200,c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d'),im=await loadCanvasImage(imageSrc);drawCover(ctx,im,w,h);if(instaTextMode!=='none'){const grad=ctx.createLinearGradient(0,0,0,h);grad.addColorStop(0,'rgba(20,18,16,.04)');grad.addColorStop(.48,'rgba(20,18,16,.12)');grad.addColorStop(1,'rgba(20,18,16,.72)');ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);const align=instaAlign,maxWidth=1008;
 
