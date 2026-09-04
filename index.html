@@ -196,8 +196,7 @@ ${gift ? `
   onpointerdown="startDrag(event,'popFooter')"
   style="${textPosStyle(popFooterX,popFooterY,popAlign)};color:${popTextColor==='white'?'#ffffff':'#3d372f'}">
   <div class="popFoot">
-    ${fmtDate($('start').value)}〜${fmtDate($('end').value)}<br>
-    ${esc($('target').value)} ／ ${esc($('conditions').value)}
+    ${esc(contents.pop?.footer_display || `${fmtDate($('start').value)}〜${fmtDate($('end').value)}\n${$('target').value} ／ ${$('conditions').value}`).replace(/\n/g,'<br>')}
   </div>
   <div class="popBrand">${esc(salon.salon_name)}</div>
 </div></div></div><div class="controlBox"><h4 class="sectionTitle">POPの文字を調整</h4><p class="helper">プレビュー上の文字をマウス（スマホは指）でつかんで、好きな位置へ移動できます。文字揃えは位置とは別に変更できます。</p><details class="textEditAccordion">
@@ -211,6 +210,8 @@ ${gift ? `
 
   <label>プレゼント内容（改行可）</label>
   <textarea id="popDesignGift">${esc(gift)}</textarea>
+  <label>フッター・条件（改行可）</label>
+<textarea id="popDesignFooter">${esc(contents.pop?.footer_display || `${fmtDate($('start').value)}〜${fmtDate($('end').value)}\n${$('target').value} ／ ${$('conditions').value}`)}</textarea>
 </details><div class="controlGrid">
 
   <div class="controlItem">
@@ -324,7 +325,12 @@ window.restorePopText=()=>{
   $('popDesignHead').value=selected.title||'';
   $('popDesignSub').value=selected.catch||'';
   $('popDesignGift').value=selected.gift||'';
-};window.savePopDesignText=async()=>{contents.pop={...contents.pop,headline:$('popDesignHead').value,subheadline:$('popDesignSub').value,gift_display:$('popDesignGift').value,layout:{
+  $('popDesignFooter').value=
+  `${fmtDate($('start').value)}〜${fmtDate($('end').value)}
+${$('target').value} ／ ${$('conditions').value}`;
+};window.savePopDesignText=async()=>{contents.pop={...contents.pop,headline:$('popDesignHead').value,subheadline:$('popDesignSub').value,gift_display:$('popDesignGift').value,
+footer_display:$('popDesignFooter').value,
+layout:{
   titleX:Math.round(popTitleX*10)/10,
   titleY:Math.round(popTitleY*10)/10,
   subX:Math.round(popSubX*10)/10,
