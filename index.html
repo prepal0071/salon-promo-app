@@ -157,7 +157,9 @@ instaFooterX=50;instaFooterY=84;
 instaAlign='center';$('rtitle').textContent=selected.title;buildTabs();show('results')}catch(e){$('confirmMsg').textContent=e.message}};
 function buildTabs(){const t=[];if(outputs.includes('pop'))t.push(['popdesign','POP']);if(outputs.includes('line'))t.push(['line','LINE']);if(outputs.includes('instagram'))t.push(['insta','Instagram']);if(outputs.includes('image')||outputs.includes('pop'))t.push(['image',outputs.includes('image')?'Instagram画像':'画像選択']);$('tabs').innerHTML=t.map((x,i)=>`<button class="tab ${i===0?'active':''}" data-t="${x[0]}">${x[1]}</button>`).join('');tab=t[0]?.[0]||'';document.querySelectorAll('.tab').forEach(x=>x.onclick=()=>{document.querySelectorAll('.tab').forEach(y=>y.classList.remove('active'));x.classList.add('active');tab=x.dataset.t;render()});render()}
 function render(){
-if(tab==='line'){$('result').innerHTML=`<h3>LINE配信文を編集</h3><label>タイトル</label><textarea id="lineTitle">${esc(contents.line?.title||'')}</textarea><label>本文</label><textarea id="lineBody" style="min-height:330px">${esc(contents.line?.body||'')}</textarea><button class="btn" onclick="saveLineEdit()">LINEを保存</button>`;return}
+if(tab==='line'){$('result').innerHTML=`<h3>LINE配信文を編集</h3><label>タイトル</label><textarea id="lineTitle">${esc(contents.line?.title||'')}</textarea><label>本文</label><textarea id="lineBody" style="min-height:330px">${esc(contents.line?.body||'')}</textarea><button class="btn" onclick="saveLineEdit()">LINEを保存</button>
+<button class="btn2" onclick="copyLineText()">文章をコピー</button>
+<button class="btn2" onclick="openLine()">LINEを開く</button>`;return}
 if(tab==='insta'){$('result').innerHTML=`<h3>Instagram投稿文を編集</h3><label>投稿文</label><textarea id="instaBody" style="min-height:420px">${esc(contents.instagram?.caption||'')}</textarea><label>ハッシュタグ</label><textarea id="instaTags">${esc((contents.instagram?.hashtags||[]).map(h=>'#'+h.replace(/^#/,'')).join(' '))}</textarea><button class="btn" onclick="saveInstaTextEdit()">Instagram投稿文を保存</button>`;return}
 if(tab==='popdesign'){const head=contents.pop?.headline ?? selected.title,
 sub=contents.pop?.subheadline ?? selected.catch,
@@ -322,6 +324,16 @@ if(tab==='image'){const showText=instaTextMode!=='none',showGift=instaTextMode==
 async function saveVersion(type,title,body,hashtags=[]){const{data:cur}=await sb.from('promotion_contents').select('id,version').eq('promotion_id',currentPromoId).eq('content_type',type).eq('is_current',true).order('version',{ascending:false}).limit(1).maybeSingle();if(cur)await sb.from('promotion_contents').update({is_current:false}).eq('id',cur.id);const{error}=await sb.from('promotion_contents').insert({promotion_id:currentPromoId,content_type:type,title,body,hashtags:hashtags||[],version:(cur?.version||0)+1,is_current:true});if(error)throw error;$('saveMsg').textContent='保存しました。';$('saveMsg').className='ok'}
 
 window.saveLineEdit=async()=>{contents.line={title:$('lineTitle').value,body:$('lineBody').value};await saveVersion('line',contents.line.title,contents.line.body,[]);render()};
+
+window.copyLineText=async()=>{
+  const text=`${$('lineTitle').value}\n\n${$('lineBody').value}`;
+  await navigator.clipboard.writeText(text);
+  alert('LINE文章をコピーしました');
+};
+
+window.openLine=()=>{
+  window.open('https://manager.line.biz/','_blank');
+};
 window.saveInstaTextEdit=async()=>{const tags=$('instaTags').value.split(/\s+/).filter(Boolean).map(x=>x.replace(/^#/,''));contents.instagram={caption:$('instaBody').value,hashtags:tags};await saveVersion('instagram',selected.title,contents.instagram.caption,tags);render()};
 window.setPopAlign=v=>{popAlign=v;render()};window.setPopFont=v=>{popFont=v;render()};window.setPopGiftFont=v=>{popGiftFont=v;render()};
 window.restorePopText=()=>{
