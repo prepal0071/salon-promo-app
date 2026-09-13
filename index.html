@@ -160,7 +160,9 @@ function render(){
 if(tab==='line'){$('result').innerHTML=`<h3>LINE配信文を編集</h3><label>タイトル</label><textarea id="lineTitle">${esc(contents.line?.title||'')}</textarea><label>本文</label><textarea id="lineBody" style="min-height:330px">${esc(contents.line?.body||'')}</textarea><button class="btn" onclick="saveLineEdit()">LINEを保存</button>
 <button class="btn2" onclick="copyLineText()">文章をコピー</button>
 <button class="btn2" onclick="openLine()">LINEを開く</button>`;return}
-if(tab==='insta'){$('result').innerHTML=`<h3>Instagram投稿文を編集</h3><label>投稿文</label><textarea id="instaBody" style="min-height:420px">${esc(contents.instagram?.caption||'')}</textarea><label>ハッシュタグ</label><textarea id="instaTags">${esc((contents.instagram?.hashtags||[]).map(h=>'#'+h.replace(/^#/,'')).join(' '))}</textarea><button class="btn" onclick="saveInstaTextEdit()">Instagram投稿文を保存</button>`;return}
+if(tab==='insta'){$('result').innerHTML=`<h3>Instagram投稿文を編集</h3><label>投稿文</label><textarea id="instaBody" style="min-height:420px">${esc(contents.instagram?.caption||'')}</textarea><label>ハッシュタグ</label><textarea id="instaTags">${esc((contents.instagram?.hashtags||[]).map(h=>'#'+h.replace(/^#/,'')).join(' '))}</textarea><button class="btn" onclick="saveInstaTextEdit()">Instagram投稿文を保存</button>
+<button class="btn2" onclick="copyInstaText()">投稿文をコピー</button>
+<button class="btn2" onclick="openInstagram()">Instagramを開く</button>`;return}
 if(tab==='popdesign'){const head=contents.pop?.headline ?? selected.title,
 sub=contents.pop?.subheadline ?? selected.catch,
 gift=contents.pop?.gift_display ?? selected.gift,fs=fontScale(popFont);$('result').innerHTML=`<div class="popPreview">${imageSrc?`<img class="popBg" src="${imageSrc}">`:''}<div class="popVeil" style="${
@@ -335,6 +337,18 @@ window.openLine=()=>{
   window.open('https://manager.line.biz/','_blank');
 };
 window.saveInstaTextEdit=async()=>{const tags=$('instaTags').value.split(/\s+/).filter(Boolean).map(x=>x.replace(/^#/,''));contents.instagram={caption:$('instaBody').value,hashtags:tags};await saveVersion('instagram',selected.title,contents.instagram.caption,tags);render()};
+
+window.copyInstaText=async()=>{
+  const body=$('instaBody').value;
+  const tags=$('instaTags').value.trim();
+  const text=tags ? `${body}\n\n${tags}` : body;
+  await navigator.clipboard.writeText(text);
+  alert('Instagram投稿文をコピーしました');
+};
+
+window.openInstagram=()=>{
+  window.open('https://www.instagram.com/','_blank');
+};
 window.setPopAlign=v=>{popAlign=v;render()};window.setPopFont=v=>{popFont=v;render()};window.setPopGiftFont=v=>{popGiftFont=v;render()};
 window.restorePopText=()=>{
   $('popDesignHead').value=selected.title||'';
