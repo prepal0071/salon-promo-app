@@ -21,6 +21,7 @@ textarea{min-height:92px;resize:vertical}.row,.editGrid{display:grid;grid-templa
   grid-template-columns:repeat(3,1fr);
   gap:12px;
   margin:12px 0;
+  grid-auto-flow:row;
 }
 
 .controlItem{
@@ -32,7 +33,7 @@ textarea{min-height:92px;resize:vertical}.row,.editGrid{display:grid;grid-templa
   height:100px;
   display:flex;
 flex-direction:column;
-justify-content:space-between;
+justify-content:flex-start;
 }
 
 .controlItem label{
@@ -48,6 +49,7 @@ justify-content:space-between;
   justify-content:center;
   gap:5px;
   flex-wrap:wrap;
+  margin-top:18px;
 }
 
 .controlItem .seg button{
