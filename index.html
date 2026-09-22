@@ -58,6 +58,15 @@ justify-content:flex-start;
 .controlItem .seg button{
   padding:7px 9px;
 }.quick button,.seg button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 11px;cursor:pointer}
+.popActions{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+  margin-top:12px;
+}
+.popActions button{
+  width:100%;
+}
 .controlBox{background:var(--soft);border-radius:12px;padding:14px;margin:14px 0}.sectionTitle{margin:6px 0 2px;font-size:16px}.helper{font-size:13px;color:var(--muted);line-height:1.6}
 .candidateGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}.candidate{border:2px solid transparent;border-radius:14px;padding:8px;background:#fff;cursor:pointer}.candidate.active{border-color:var(--accent)}
 .candidate img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:10px;display:block}.uploadBox{border:1px dashed var(--line);border-radius:12px;padding:14px;background:#fff}
@@ -313,7 +322,7 @@ ${gift ? `
         onclick="popVeilStrength='strong';render()">濃いめ</button>
     </div>
   </div>
-<div class="actions">
+<div class="popActions">
   <button class="btn" onclick="savePopDesignText()">保存して反映</button>
   <button class="btn btn2" onclick="restorePopText()">生成時の文章に戻す</button>
   <button class="btn btn2" onclick="downloadPop()">POP画像を保存</button>
