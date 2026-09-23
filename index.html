@@ -105,6 +105,12 @@ justify-content:flex-start;
 }
 .popFoot{font-size:clamp(10px,1.7vw,15px);line-height:1.6;margin-top:4%;white-space:pre-line}.popBrand{font-size:clamp(10px,1.6vw,14px);letter-spacing:.12em;color:#665c52;margin-top:2%}
 @media(max-width:760px){.row,.plans,.editGrid,.candidateGrid{grid-template-columns:1fr}.summary{grid-template-columns:1fr}.editGrid .full{grid-column:auto}.item{align-items:flex-start;flex-direction:column}}
+@media(max-width:760px){
+  .controlGrid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+  }
+}
 </style></head><body><main class="wrap"><div class="head"><div><div>
   <h2 style="margin:0">SALON PROMO</h2>
   <div style="font-size:12px;letter-spacing:.08em;color:var(--muted);margin-top:3px">AI Promotion Studio</div>
