@@ -30,7 +30,7 @@ module.exports = async function (req, res) {
           footer: { type: 'string' },
           footer_display: { type: 'string' },
           gift_display: { type: 'string' },
-          design_variant: { type: 'string', enum: ['seasonal', 'campaign', 'menu'] }
+          design_variant: { type: 'string', enum: ['seasonal', 'campaign', 'menu', 'product'] }
         },
         required: ['headline','subheadline','body','footer','footer_display','gift_display','design_variant'],
         additionalProperties: false
@@ -265,7 +265,8 @@ Instagram：一文目で対象者の関心を捉え、具体的な利用場面�
 【店内POP専用：この指示はPOPフィールドだけに適用】
 POPの欄の役割・フッターの空欄・配置について前段の一般指示と異なる場合は、以下を優先する。
 来店中の既存顧客が追加利用・商品購入・次回予約を考える、短く読める構成にする。
-design_variantは、特典が中心ならcampaign、メニュー・商品自体の紹介が中心ならmenu、季節・悩みを入口にするならseasonal。入力の目的と内容から選び、割引がないのにキャンペーン風にしない。
+design_variantは4種類から選ぶ。季節・悩みを来店のきっかけにするならseasonal、特典が主役ならcampaign、施術やメニューを提案するならmenu、商品名・特徴を紹介するならproduct。商品に特典があっても商品紹介が主目的ならproductを選べる。入力目的と主役を優先し、割引がないのに割引風にしない。座標・幅・CSSは生成しない。
+seasonalはheadlineを主役、campaignはgift_displayの対象付き特典を主役、menuはgift_displayのメニュー名を主役、productはgift_displayの商品名を主役にしてsubheadlineへ短い特徴を置く。全特典・必須掲載・重要条件はそれぞれ表示欄に保持する。
 headline：上部の短いキャッチ。目安12〜24文字で一つの関心を示す。特典一覧を繰り返さない。
 subheadline：施術・商品名や選ぶ理由を短く補足。目安1〜2行。沿革や長い施術説明にしない。
 gift_display：中央の主役。特典があれば全件をそれぞれ改行して、対象名と割引率・サービス時間を同じ行に示す。割引率だけにして対象を落とさない。特典がなければメニュー・商品名と短い魅力を示す。
@@ -389,7 +390,7 @@ ${problems.map((x,i)=>`${i+1}. ${x}`).join('\n')}
     }
 
     if (outs.includes('pop') && result.pop) {
-      result.pop.design_version = 2;
+      result.pop.design_version = 3;
       result.pop.generated_text = Object.fromEntries(['headline','subheadline','gift_display','footer_display'].map(key => [key, result.pop[key]]));
     }
     return res.json(result);

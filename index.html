@@ -141,6 +141,12 @@ justify-content:flex-start;
 .popModern.pop-seasonal .popH{letter-spacing:.06em}
 .popModern.pop-campaign .popGift{border-top:2px solid currentColor;border-bottom:2px solid currentColor;padding:8px 0}
 .popModern.pop-menu .popGift{font-family:serif;font-weight:600}
+
+.popFour .popText{box-sizing:border-box}
+.popFour .popOffer{padding:6px 0;border-bottom:1px solid currentColor}
+.popFour .popOffer:last-child{border-bottom:0}
+.popFour .popGift,.popFour .popH{font-family:"Noto Serif CJK JP","Yu Mincho","Hiragino Mincho ProN",serif}
+.popFour .popH{letter-spacing:.02em}
 </style></head><body><main class="wrap"><div class="head"><div><div>
   <h2 style="margin:0">SALON PROMO</h2>
   <div style="font-size:12px;letter-spacing:.08em;color:var(--muted);margin-top:3px">AI Promotion Studio</div>
@@ -221,8 +227,70 @@ popFooterY=Number(contents.pop?.layout?.footerY)||(contents.pop?.design_version=
 instaTitleX=50;instaTitleY=28;
 instaGiftX=50;instaGiftY=58;
 instaFooterX=50;instaFooterY=84;
-instaAlign='center';if(contents.pop?.design_version===2){popTitleX=50;popTitleY=17;popSubX=50;popSubY=31;popGiftX=50;popGiftY=57;popFooterX=50;popFooterY=87;popFont='medium';popGiftFont='medium';popFooterFont='medium';popTextColor='dark';popVeilTone='light';popVeilStrength='medium';}$('rtitle').textContent=selected.title;buildTabs();show('results')}catch(e){$('confirmMsg').textContent=e.message}};
+instaAlign='center';if(contents.pop?.design_version===2){popTitleX=50;popTitleY=17;popSubX=50;popSubY=31;popGiftX=50;popGiftY=57;popFooterX=50;popFooterY=87;popFont='medium';popGiftFont='medium';popFooterFont='medium';popTextColor='dark';popVeilTone='light';popVeilStrength='medium';}restoreFourPopLayout();$('rtitle').textContent=selected.title;buildTabs();show('results')}catch(e){$('confirmMsg').textContent=e.message}};
 function buildTabs(){const t=[];if(outputs.includes('pop'))t.push(['popdesign','POP']);if(outputs.includes('line'))t.push(['line','LINE']);if(outputs.includes('instagram'))t.push(['insta','Instagram']);if(outputs.includes('image')||outputs.includes('pop'))t.push(['image',outputs.includes('image')?'Instagram画像':'画像選択']);$('tabs').innerHTML=t.map((x,i)=>`<button class="tab ${i===0?'active':''}" data-t="${x[0]}">${x[1]}</button>`).join('');tab=t[0]?.[0]||'';document.querySelectorAll('.tab').forEach(x=>x.onclick=()=>{document.querySelectorAll('.tab').forEach(y=>y.classList.remove('active'));x.classList.add('active');tab=x.dataset.t;render()});render()}
+// V3 profiles are the single source for positions, widths, sizes and spacing.
+const POP_LAYOUTS = {
+ seasonal:{align:'center',margin:6,gap:12,numberScale:1.25,decoration:'border:1px solid currentColor;',blocks:{popTitle:{x:50,y:23,width:80,size:52},popSub:{x:50,y:44,width:76,size:22},popGift:{x:50,y:65,width:74,size:26},popFooter:{x:50,y:89,width:80,size:14}}},
+ campaign:{align:'center',margin:6,gap:14,numberScale:1.75,decoration:'border-top:3px solid currentColor;border-bottom:3px solid currentColor;',blocks:{popTitle:{x:50,y:13,width:80,size:30},popSub:{x:50,y:26,width:78,size:19},popGift:{x:50,y:54,width:84,size:31},popFooter:{x:50,y:89,width:80,size:14}}},
+ menu:{align:'center',margin:6,gap:16,numberScale:1.3,decoration:'border-left:4px solid currentColor;',blocks:{popTitle:{x:50,y:13,width:76,size:28},popGift:{x:50,y:39,width:80,size:44},popSub:{x:50,y:65,width:72,size:24},popFooter:{x:50,y:89,width:80,size:14}}},
+ product:{align:'left',margin:6,gap:16,numberScale:1.3,decoration:'border-top:2px solid currentColor;',futurePhotoRegion:{x:66,y:32,width:24,height:28},blocks:{popTitle:{x:50,y:13,width:78,size:27},popGift:{x:50,y:36,width:78,size:43},popSub:{x:50,y:64,width:70,size:23},popFooter:{x:50,y:89,width:80,size:14}}}
+};
+function isFourPop(){return contents.pop?.design_version!=null&&contents.pop.design_version!==2;}
+function isModernPop(){return contents.pop?.design_version!=null;}
+function popProfile(){const variant=contents.pop?.design_variant;return contents.pop?.design_version===3&&Object.hasOwn(POP_LAYOUTS,variant)?POP_LAYOUTS[variant]:POP_LAYOUTS.menu;}
+function restoreFourPopLayout(){
+ if(!isFourPop())return;
+ const p=popProfile(),l=contents.pop.layout||{},num=(key,fallback)=>typeof l[key]==='number'&&Number.isFinite(l[key])?clamp(l[key],0,100):fallback;
+ popTitleX=num('titleX',p.blocks.popTitle.x);popTitleY=num('titleY',p.blocks.popTitle.y);
+ popSubX=num('subX',p.blocks.popSub.x);popSubY=num('subY',p.blocks.popSub.y);
+ popGiftX=num('giftX',p.blocks.popGift.x);popGiftY=num('giftY',p.blocks.popGift.y);
+ popFooterX=num('footerX',p.blocks.popFooter.x);popFooterY=num('footerY',p.blocks.popFooter.y);
+ const font=value=>['small','medium','large'].includes(value)?value:'medium';
+ popFont=font(l.font);popGiftFont=font(l.giftFont??l.giftfont);popFooterFont=font(l.footerFont);
+ popAlign=['left','center','right'].includes(l.align)?l.align:p.align;
+ popTextColor=l.textColor==='white'?'white':'dark';popVeilTone=l.veilTone==='dark'?'dark':'light';popVeilStrength=['light','medium','strong'].includes(l.veilStrength)?l.veilStrength:'medium';
+}
+function fourPopMarkup(){
+ const p=popProfile(),parts=modernPopParts(),color=popTextColor==='white'?'#fff':'#3d372f';
+ const positions={popTitle:[popTitleX,popTitleY],popSub:[popSubX,popSubY],popGift:[popGiftX,popGiftY],popFooter:[popFooterX,popFooterY]};
+ const rows=parts.gift.split('\n').filter(Boolean).map(line=>`<span class="popOffer">${esc(line).replace(/([0-9０-９]+(?:[.．][0-9０-９]+)?\s*[％%]\s*(?:OFF|オフ|割引)|[0-9０-９]+\s*分(?:間)?\s*サービス)/gi,`<strong class="popNumber" style="font-size:${p.numberScale}em;line-height:1.15">$1</strong>`)}</span>`).join('');
+ const text={popTitle:`<div class="popH">${esc(parts.headline)}</div>`,popSub:`<div class="popSub">${esc(parts.sub)}</div>`,popGift:`<div class="popGift">${rows}</div>`,popFooter:`<div class="popFoot">${esc(parts.footer)}</div><div class="popBrand">${esc(salon.salon_name)}</div>`};
+ const opacity=popVeilStrength==='light'?.70:popVeilStrength==='strong'?.94:.84;
+ const blocks=Object.entries(p.blocks).map(([key,b])=>`<div class="popText" data-pop-block="${key}" onpointerdown="startDrag(event,'${key}')" style="${textPosStyle(...positions[key],popAlign)}width:${b.width}%;max-width:${b.width}%;color:${color};${key==='popGift'?p.decoration:''}">${text[key]}</div>`).join('');
+ return `<div class="popPreview popModern popFour" style="color:${color}">${imageSrc?`<img class="popBg" src="${esc(imageSrc)}">`:''}<div class="popVeil" style="background:${popVeilTone==='dark'?`rgba(20,18,16,${opacity})`:`rgba(255,250,244,${opacity})`}"></div><div class="popOverlayMain">${blocks}</div></div>`;
+}
+function fitFourPop(){
+ const frame=document.querySelector('.popFour');if(!frame)return;
+ const w=frame.clientWidth,h=frame.clientHeight;if(!w||!h)return;
+ const p=popProfile(),margin=p.margin/100,gap=p.gap*w/620;
+ const scales={popTitle:fontScale(popFont),popSub:1,popGift:fontScale(popGiftFont),popFooter:fontScale(popFooterFont)};
+ const blocks=[...frame.querySelectorAll('[data-pop-block]')].filter(el=>el.textContent.trim()).sort((a,b)=>parseFloat(a.style.top)-parseFloat(b.style.top));
+ const centers=blocks.map(el=>clamp(parseFloat(el.style.top)/100*h,margin*h,(1-margin)*h));
+ blocks.forEach((el,i)=>{
+  const top=i?(centers[i-1]+centers[i])/2:margin*h,bottom=i<blocks.length-1?(centers[i]+centers[i+1])/2:(1-margin)*h;
+  let size=p.blocks[el.dataset.popBlock].size*scales[el.dataset.popBlock]*w/620;
+  const minimum=(el.dataset.popBlock==='popFooter'?12:14)*w/620;
+  el.style.padding=`${gap/2}px ${gap}px`;el.style.boxSizing='border-box';
+  el.querySelectorAll('div').forEach(d=>d.style.fontSize='inherit');
+  el.style.fontSize=size+'px';
+  while((el.offsetHeight>bottom-top-gap||el.scrollWidth>el.clientWidth+1)&&size>minimum){size=Math.max(minimum,size-0.5);el.style.fontSize=size+'px';}
+  const y=clamp(centers[i],top+gap/2+el.offsetHeight/2,bottom-gap/2-el.offsetHeight/2);
+  el.style.top=(y/h*100)+'%';
+  const half=el.offsetWidth/2;el.style.left=(clamp(parseFloat(el.style.left)/100*w,half+margin*w,w-half-margin*w)/w*100)+'%';
+ });
+ const bounds=frame.getBoundingClientRect(),rects=blocks.map(el=>el.getBoundingClientRect());
+ const bad=rects.some((r,i)=>r.left<bounds.left+margin*w-1||r.right>bounds.right-margin*w+1||r.top<bounds.top+margin*h-1||r.bottom>bounds.bottom-margin*h+1||(i&&r.top<rects[i-1].bottom+gap-1)||blocks[i].scrollWidth>blocks[i].clientWidth+1);
+ frame.dataset.overflow=bad?'true':'false';const message=document.getElementById('popFitMsg');if(message)message.textContent=bad?'文字が収まりません。文章を短くするか、文字サイズ・位置を調整してください。':'';
+ return !bad;
+}
+function captureFourPopPositions(){
+ const frame=document.querySelector('.popFour');if(!frame)return;
+ const pairs=[['popTitle','titleX','titleY'],['popSub','subX','subY'],['popGift','giftX','giftY'],['popFooter','footerX','footerY']];
+ const l=contents.pop.layout||{};
+ for(const [block,x,y] of pairs){const el=frame.querySelector(`[data-pop-block="${block}"]`);if(el){l[x]=Math.round(parseFloat(el.style.left)*100)/100;l[y]=Math.round(parseFloat(el.style.top)*100)/100;}}
+ contents.pop.layout=l;restoreFourPopLayout();
+}
 function modernPopParts(){
   const p=contents.pop||{}, seen=new Set();
   const unique=value=>String(value??'').split('\n').filter(line=>{const key=line.replace(/\s/g,'');if(!key)return false;if(seen.has(key))return false;seen.add(key);return true}).join('\n');
@@ -233,6 +301,7 @@ function modernPopParts(){
   return {headline,sub,gift,footer};
 }
 function modernPopMarkup(){
+  if(isFourPop())return fourPopMarkup();
   const p=contents.pop,parts=modernPopParts();
   const variant=['seasonal','campaign','menu'].includes(p.design_variant)?p.design_variant:'menu';
   const color=popTextColor==='white'?'#fff':'#3d372f';
@@ -242,6 +311,7 @@ function modernPopMarkup(){
   return `<div class="popPreview popModern pop-${variant}">${imageSrc?`<img class="popBg" src="${esc(imageSrc)}">`:''}<div class="popVeil" style="background:${popVeilTone==='dark'?`rgba(20,18,16,${opacity})`:`rgba(255,250,244,${opacity})`}"></div><div class="popOverlayMain">${text('popTitle',popTitleX,popTitleY,`<div class="popH">${esc(parts.headline)}</div>`)}${text('popSub',popSubX,popSubY,`<div class="popSub">${esc(parts.sub)}</div>`)}${text('popGift',popGiftX,popGiftY,`<div class="popGift">${offers}</div>`)}${text('popFooter',popFooterX,popFooterY,`<div class="popFoot">${esc(parts.footer)}</div><div class="popBrand">${esc(salon.salon_name)}</div>`)}</div></div>`;
 }
 function fitModernPop(){
+  if(isFourPop())return fitFourPop();
   const frame=document.querySelector('.popModern');if(!frame)return;
   const w=frame.clientWidth,h=frame.clientHeight;if(!w||!h)return;
   const scales={popTitle:fontScale(popFont),popSub:1,popGift:fontScale(popGiftFont),popFooter:fontScale(popFooterFont)};
@@ -274,7 +344,7 @@ if(tab==='insta'){$('result').innerHTML=`<h3>Instagram投稿文を編集</h3><la
 <button class="btn2" onclick="openInstagram()">Instagramを開く</button>`;return}
 if(tab==='popdesign'){const head=contents.pop?.headline ?? selected.title,
 sub=contents.pop?.subheadline ?? selected.catch,
-gift=contents.pop?.gift_display ?? selected.gift,fs=fontScale(popFont);$('result').innerHTML=`${contents.pop?.design_version===2?modernPopMarkup():`<div class="popPreview">${imageSrc?`<img class="popBg" src="${imageSrc}">`:''}<div class="popVeil" style="${
+gift=contents.pop?.gift_display ?? selected.gift,fs=fontScale(popFont);$('result').innerHTML=`${isModernPop()?modernPopMarkup():`<div class="popPreview">${imageSrc?`<img class="popBg" src="${imageSrc}">`:''}<div class="popVeil" style="${
   popVeilTone==='dark'
     ? `background:rgba(20,18,16,${popVeilStrength==='light'?.22:popVeilStrength==='strong'?.58:.40})`
     : `background:rgba(255,250,244,${popVeilStrength==='light'?.22:popVeilStrength==='strong'?.58:.40})`
@@ -317,7 +387,7 @@ ${gift ? `
     popFooterFont==='large' ? 'clamp(16px,2.5vw,22px)' :
     'clamp(13px,2.1vw,18px)'
   }">
-    ${esc((contents.pop?.design_version===2?(contents.pop.footer_display??''):(contents.pop?.footer_display || `${fmtDate($('start').value)}〜${fmtDate($('end').value)}\n${$('target').value} ／ ${$('conditions').value}`))).replace(/\n/g,'<br>')}
+    ${esc((isModernPop()?(contents.pop.footer_display??''):(contents.pop?.footer_display || `${fmtDate($('start').value)}〜${fmtDate($('end').value)}\n${$('target').value} ／ ${$('conditions').value}`))).replace(/\n/g,'<br>')}
   </div>
   <div class="popBrand" style="color:${popTextColor==='white'?'#fff':'#3b332f'}">${esc(salon.salon_name)}</div>
 </div></div></div>`}<div class="controlBox"><h4 class="sectionTitle">POPの文字を調整</h4><p class="helper">プレビュー上の文字をマウス（スマホは指）でつかんで、好きな位置へ移動できます。文字揃えは位置とは別に変更できます。</p><p id="popFitMsg" class="error" role="status"></p><details class="textEditAccordion">
@@ -332,7 +402,7 @@ ${gift ? `
   <label>サービス内容（改行可）</label>
   <textarea id="popDesignGift">${esc(gift)}</textarea>
   <label>フッター・条件（改行可）</label>
-<textarea id="popDesignFooter">${esc((contents.pop?.design_version===2?(contents.pop.footer_display??''):(contents.pop?.footer_display || `${fmtDate($('start').value)}〜${fmtDate($('end').value)}\n${$('target').value} ／ ${$('conditions').value}`)))}</textarea>
+<textarea id="popDesignFooter">${esc((isModernPop()?(contents.pop.footer_display??''):(contents.pop?.footer_display || `${fmtDate($('start').value)}〜${fmtDate($('end').value)}\n${$('target').value} ／ ${$('conditions').value}`)))}</textarea>
 </details><div class="controlGrid">
 
   <div class="controlItem">
@@ -513,7 +583,7 @@ window.openInstagram=()=>{
 };
 window.setPopAlign=v=>{popAlign=v;render()};window.setPopFont=v=>{popFont=v;render()};window.setPopGiftFont=v=>{popGiftFont=v;render()};window.setPopFooterFont=v=>{popFooterFont=v;render()};
 window.restorePopText=()=>{
-  if(contents.pop?.design_version===2&&contents.pop.generated_text){const t=contents.pop.generated_text;$('popDesignHead').value=t.headline??'';$('popDesignSub').value=t.subheadline??'';$('popDesignGift').value=t.gift_display??'';$('popDesignFooter').value=t.footer_display??'';return;}
+  if(isModernPop()&&contents.pop.generated_text){const t=contents.pop.generated_text;$('popDesignHead').value=t.headline??'';$('popDesignSub').value=t.subheadline??'';$('popDesignGift').value=t.gift_display??'';$('popDesignFooter').value=t.footer_display??'';return;}
   $('popDesignHead').value=selected.title||'';
   $('popDesignSub').value=selected.catch||'';
   $('popDesignGift').value=selected.gift||'';
@@ -537,7 +607,7 @@ layout:{
   footerFont:popFooterFont,
   align:popAlign,
   font:popFont
-}};await saveVersion('pop',contents.pop.headline,JSON.stringify(contents.pop),[]);overlayTitle=contents.pop.headline;overlayGift=contents.pop.gift_display||selected.gift;render()};
+}};if(isFourPop()){render();fitFourPop();captureFourPopPositions();}await saveVersion('pop',contents.pop.headline,JSON.stringify(contents.pop),[]);overlayTitle=contents.pop.headline;overlayGift=contents.pop.gift_display||selected.gift;render()};
 window.setRevision=t=>{const e=$('rev');if(e)e.value=t};
 async function generateOneImage(revision,variant){const j=await api('/api/image',{prompt:contents.image?.prompt_ja||`${selected.title} ${selected.gift}`,revision,variant});return j.image_base64?`data:image/png;base64,${j.image_base64}`:j.image_url}
 window.generateCandidates=async()=>{
@@ -657,7 +727,7 @@ instaTitleY=Number(meta.instaTitleY)||instaTitleY;
 instaGiftX=Number(meta.instaGiftX)||instaGiftX;
 instaGiftY=Number(meta.instaGiftY)||instaGiftY;
 instaFooterX=Number(meta.instaFooterX)||instaFooterX;
-instaFooterY=Number(meta.instaFooterY)||instaFooterY;instaTitleFont=meta.instaTitleFont||'medium';instaGiftFont=meta.instaGiftFont||'medium';instaFooterFont=meta.instaFooterFont||'medium';instaAlign=meta.instaAlign||instaAlign}catch{}}$('rtitle').textContent=selected.title+'（再編集）';buildTabs();show('results')};
+instaFooterY=Number(meta.instaFooterY)||instaFooterY;instaTitleFont=meta.instaTitleFont||'medium';instaGiftFont=meta.instaGiftFont||'medium';instaFooterFont=meta.instaFooterFont||'medium';instaAlign=meta.instaAlign||instaAlign}catch{}}restoreFourPopLayout();$('rtitle').textContent=selected.title+'（再編集）';buildTabs();show('results')};
 window.deletePromo=async id=>{if(!confirm('この販促データを削除しますか？\n文章・保存画像も削除されます。'))return;try{const{data:imgs}=await sb.from('promotion_images').select('storage_path').eq('promotion_id',id),paths=(imgs||[]).map(x=>x.storage_path).filter(Boolean);if(paths.length){const{error:se}=await sb.storage.from('promotion-images').remove(paths);if(se)throw se}let r=await sb.from('promotion_images').delete().eq('promotion_id',id);if(r.error)throw r.error;r=await sb.from('promotion_contents').delete().eq('promotion_id',id);if(r.error)throw r.error;r=await sb.from('promotions').delete().eq('id',id);if(r.error)throw r.error;await hist()}catch(e){alert('削除できませんでした：'+e.message)}};
 function drawCover(ctx,im,w,h){const s=Math.max(w/im.width,h/im.height),sw=im.width*s,sh=im.height*s;ctx.drawImage(im,(w-sw)/2,(h-sh)/2,sw,sh)}
 function wrapLines(ctx,text,maxWidth){const all=[];for(const para of String(text||'').split('\n')){let line='';for(const ch of[...para]){if(ctx.measureText(line+ch).width>maxWidth&&line){all.push(line);line=ch}else line+=ch}all.push(line)}return all}
@@ -675,7 +745,7 @@ window.downloadPop=async()=>{
       await document.fonts.ready;
     }
 
-    if(contents.pop?.design_version===2&&fitModernPop()===false)return alert('文字が収まりません。文章・サイズ・位置を調整してから保存してください。');
+    if(isModernPop()&&fitModernPop()===false)return alert('文字が収まりません。文章・サイズ・位置を調整してから保存してください。');
     const scale=1240/el.getBoundingClientRect().width;
 
     const canvas=await html2canvas(el,{
