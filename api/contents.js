@@ -29,9 +29,10 @@ module.exports = async function (req, res) {
           body: { type: 'string' },
           footer: { type: 'string' },
           footer_display: { type: 'string' },
-          gift_display: { type: 'string' }
+          gift_display: { type: 'string' },
+          design_variant: { type: 'string', enum: ['seasonal', 'campaign', 'menu'] }
         },
-        required: ['headline','subheadline','body','footer','footer_display','gift_display'],
+        required: ['headline','subheadline','body','footer','footer_display','gift_display','design_variant'],
         additionalProperties: false
       };
       required.push('pop');
@@ -260,6 +261,21 @@ Instagram：一文目で対象者の関心を捉え、具体的な利用場面�
 `;
 
 
+    const popInstruction = outs.includes('pop') ? `
+【店内POP専用：この指示はPOPフィールドだけに適用】
+POPの欄の役割・フッターの空欄・配置について前段の一般指示と異なる場合は、以下を優先する。
+来店中の既存顧客が追加利用・商品購入・次回予約を考える、短く読める構成にする。
+design_variantは、特典が中心ならcampaign、メニュー・商品自体の紹介が中心ならmenu、季節・悩みを入口にするならseasonal。入力の目的と内容から選び、割引がないのにキャンペーン風にしない。
+headline：上部の短いキャッチ。目安12〜24文字で一つの関心を示す。特典一覧を繰り返さない。
+subheadline：施術・商品名や選ぶ理由を短く補足。目安1〜2行。沿革や長い施術説明にしない。
+gift_display：中央の主役。特典があれば全件をそれぞれ改行して、対象名と割引率・サービス時間を同じ行に示す。割引率だけにして対象を落とさない。特典がなければメニュー・商品名と短い魅力を示す。
+footer_display：下部の期限・必要条件のみ。中央に掲載した特典一覧やキャッチは繰り返さない。条件がなければ空文字でよい。footerには同じ内容を入れる。店舗名は画面で別表示されるので重ねない。
+body：必要なら補足用の短文。必須掲載内容をbodyだけに置かず、実表示する上記4欄に含める。
+必須掲載名と全特典と重要条件は省略しない。同じ情報は役割の合う1欄に集約する。複数特典は1行1件を基本に区別し、共通条件は下部に1回掲載する。
+併用不可から選べる特典・どちらか一つ・適用単位を推測しない。未入力の効果・実績・価格・割引・期限・限定性を創作しない。
+LINE・Instagram・画像指示の生成方針は変更しない。
+` : '';
+
     async function callModel(input) {
       const r = await fetch('https://api.openai.com/v1/responses', {
         method: 'POST',
@@ -269,7 +285,7 @@ Instagram：一文目で対象者の関心を捉え、具体的な利用場面�
         },
         body: JSON.stringify({
           model: 'gpt-5.4-mini',
-          input,
+          input: input + popInstruction,
           text: {
             format: {
               type: 'json_schema',
@@ -372,6 +388,10 @@ ${problems.map((x,i)=>`${i+1}. ${x}`).join('\n')}
 `);
     }
 
+    if (outs.includes('pop') && result.pop) {
+      result.pop.design_version = 2;
+      result.pop.generated_text = Object.fromEntries(['headline','subheadline','gift_display','footer_display'].map(key => [key, result.pop[key]]));
+    }
     return res.json(result);
 
   } catch (e) {

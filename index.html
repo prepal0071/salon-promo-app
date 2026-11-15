@@ -125,6 +125,22 @@ justify-content:flex-start;
   min-width:0;
   }
 }
+
+/* Versioned POP designs: legacy saved POPs keep their original renderer. */
+.popModern{background:#f7f3ee;color:#3d372f}
+.popModern .popText{margin:0;overflow-wrap:anywhere;line-height:1.35}
+.popModern .popText>div{margin:0;white-space:pre-wrap}
+.popModern .popH{font-family:serif;font-weight:600;line-height:1.22}
+.popModern .popGift{padding:0;border:0;line-height:1.35}
+.popModern .popGift:before,.popModern .popGift:after{display:none}
+.popModern .popOffer{display:block;padding:8px 0;border-bottom:1px solid currentColor}
+.popModern .popOffer:last-child{border-bottom:0}
+.popModern .popNumber{display:inline;font-size:1.65em;font-weight:700;line-height:1.15}
+.popModern .popBrand{color:inherit;font-size:inherit;line-height:1.4;margin-top:10px;letter-spacing:.08em}
+.popModern:before{content:'';position:absolute;inset:4%;border:1px solid #a88c6470;z-index:1;pointer-events:none}
+.popModern.pop-seasonal .popH{letter-spacing:.06em}
+.popModern.pop-campaign .popGift{border-top:2px solid currentColor;border-bottom:2px solid currentColor;padding:8px 0}
+.popModern.pop-menu .popGift{font-family:serif;font-weight:600}
 </style></head><body><main class="wrap"><div class="head"><div><div>
   <h2 style="margin:0">SALON PROMO</h2>
   <div style="font-size:12px;letter-spacing:.08em;color:var(--muted);margin-top:3px">AI Promotion Studio</div>
@@ -195,18 +211,60 @@ async function gen(){outputs=selectedOutputs();if(!outputs.length){$('formMsg').
 $('propose').onclick=gen;$('regen').onclick=gen;
 window.choose=id=>{selected=plans.find(p=>p.id===id);$('summary').innerHTML=`<div>企画</div><div><b>${esc(selected.title)}</b></div><div>キャッチ</div><div>${esc(selected.catch)}</div><div>期間</div><div>${$('start').value} ～ ${$('end').value}</div><div>サービス</div><div>${esc(selected.gift)}</div>`;show('confirm')};
 $('make').onclick=async()=>{try{contents=await api('/api/contents',{salon:settings,plan:selected,required_content:$('requiredContent').value,benefits:$('benefits').value,promotion_goal:$('promotionGoal').value==='other'?$('promotionGoalOther').value:$('promotionGoal').value,start_date:$('start').value,end_date:$('end').value,target:$('target').value,conditions:$('conditions').value,line_emoji:$('lineEmoji').value,instagram_emoji:$('instaEmoji').value,outputs});const{data:p,error}=await sb.from('promotions').insert({salon_id:salon.id,created_by:user.id,start_date:$('start').value,end_date:$('end').value,theme:$('theme').value,gift_request:$('gift').value,sales_goal:$('promotionGoal').value==='other'?$('promotionGoalOther').value:$('promotionGoal').value,target:$('target').value,conditions:$('conditions').value,requested_outputs:outputs,plan_candidates:plans,selected_plan:{...selected,input_details:{required_content:$('requiredContent').value,benefits:$('benefits').value}},status:'generated'}).select().single();if(error)throw error;currentPromoId=p.id;const rows=[];if(contents.pop)rows.push({promotion_id:p.id,content_type:'pop',title:contents.pop.headline,body:JSON.stringify(contents.pop),hashtags:[],version:1,is_current:true});if(contents.line)rows.push({promotion_id:p.id,content_type:'line',title:contents.line.title,body:contents.line.body,hashtags:[],version:1,is_current:true});if(contents.instagram)rows.push({promotion_id:p.id,content_type:'instagram',title:selected.title,body:contents.instagram.caption,hashtags:contents.instagram.hashtags||[],version:1,is_current:true});if(rows.length){const{error:e}=await sb.from('promotion_contents').insert(rows);if(e)throw e}imageSrc='';imageCandidates=[];imageStatus='';overlayTitle=contents.pop?.headline||selected.title;overlayGift=contents.pop?.gift_display||selected.gift;overlayFooter=`${fmtDate($('start').value)}〜${fmtDate($('end').value)} ／ ${$('conditions').value}`;popTitleX=Number(contents.pop?.layout?.titleX ?? contents.pop?.layout?.x)||50;
-popTitleY=Number(contents.pop?.layout?.titleY ?? contents.pop?.layout?.y)||28;
+popTitleY=Number(contents.pop?.layout?.titleY ?? contents.pop?.layout?.y)||(contents.pop?.design_version===2?17:28);
 popSubX=Number(contents.pop?.layout?.subX)||50;
-popSubY=Number(contents.pop?.layout?.subY)||43;
+popSubY=Number(contents.pop?.layout?.subY)||(contents.pop?.design_version===2?31:43);
 popGiftX=Number(contents.pop?.layout?.giftX)||50;
-popGiftY=Number(contents.pop?.layout?.giftY)||62;
+popGiftY=Number(contents.pop?.layout?.giftY)||(contents.pop?.design_version===2?57:62);
 popFooterX=Number(contents.pop?.layout?.footerX)||50;
-popFooterY=Number(contents.pop?.layout?.footerY)||82;popAlign=contents.pop?.layout?.align||'center';popFont=contents.pop?.layout?.font||'medium';instaTextMode='titleGift';
+popFooterY=Number(contents.pop?.layout?.footerY)||(contents.pop?.design_version===2?87:82);popAlign=contents.pop?.layout?.align||'center';popFont=contents.pop?.layout?.font||'medium';instaTextMode='titleGift';
 instaTitleX=50;instaTitleY=28;
 instaGiftX=50;instaGiftY=58;
 instaFooterX=50;instaFooterY=84;
-instaAlign='center';$('rtitle').textContent=selected.title;buildTabs();show('results')}catch(e){$('confirmMsg').textContent=e.message}};
+instaAlign='center';if(contents.pop?.design_version===2){popTitleX=50;popTitleY=17;popSubX=50;popSubY=31;popGiftX=50;popGiftY=57;popFooterX=50;popFooterY=87;popFont='medium';popGiftFont='medium';popFooterFont='medium';popTextColor='dark';popVeilTone='light';popVeilStrength='medium';}$('rtitle').textContent=selected.title;buildTabs();show('results')}catch(e){$('confirmMsg').textContent=e.message}};
 function buildTabs(){const t=[];if(outputs.includes('pop'))t.push(['popdesign','POP']);if(outputs.includes('line'))t.push(['line','LINE']);if(outputs.includes('instagram'))t.push(['insta','Instagram']);if(outputs.includes('image')||outputs.includes('pop'))t.push(['image',outputs.includes('image')?'Instagram画像':'画像選択']);$('tabs').innerHTML=t.map((x,i)=>`<button class="tab ${i===0?'active':''}" data-t="${x[0]}">${x[1]}</button>`).join('');tab=t[0]?.[0]||'';document.querySelectorAll('.tab').forEach(x=>x.onclick=()=>{document.querySelectorAll('.tab').forEach(y=>y.classList.remove('active'));x.classList.add('active');tab=x.dataset.t;render()});render()}
+function modernPopParts(){
+  const p=contents.pop||{}, seen=new Set();
+  const unique=value=>String(value??'').split('\n').filter(line=>{const key=line.replace(/\s/g,'');if(!key)return false;if(seen.has(key))return false;seen.add(key);return true}).join('\n');
+  // Exact repeated lines only; never infer that a condition is an offer.
+  const gift=unique(p.gift_display??selected.gift);
+  const headline=unique(p.headline??selected.title),sub=unique(p.subheadline??selected.catch);
+  const footer=unique(p.footer_display??p.footer??'');
+  return {headline,sub,gift,footer};
+}
+function modernPopMarkup(){
+  const p=contents.pop,parts=modernPopParts();
+  const variant=['seasonal','campaign','menu'].includes(p.design_variant)?p.design_variant:'menu';
+  const color=popTextColor==='white'?'#fff':'#3d372f';
+  const text=(kind,x,y,body)=>`<div class="popText" data-pop-block="${kind}" onpointerdown="startDrag(event,'${kind}')" style="${textPosStyle(x,y,popAlign)};color:${color}">${body}</div>`;
+  const offers=parts.gift.split('\n').filter(Boolean).map(line=>`<span class="popOffer">${esc(line).replace(/([0-9０-９]+(?:[.．][0-9０-９]+)?\s*[％%]\s*(?:OFF|オフ|割引)|[0-9０-９]+\s*分(?:間)?\s*サービス)/gi,'<strong class="popNumber">$1</strong>')}</span>`).join('');
+  const opacity=popVeilStrength==='light'?.70:popVeilStrength==='strong'?.94:.84;
+  return `<div class="popPreview popModern pop-${variant}">${imageSrc?`<img class="popBg" src="${esc(imageSrc)}">`:''}<div class="popVeil" style="background:${popVeilTone==='dark'?`rgba(20,18,16,${opacity})`:`rgba(255,250,244,${opacity})`}"></div><div class="popOverlayMain">${text('popTitle',popTitleX,popTitleY,`<div class="popH">${esc(parts.headline)}</div>`)}${text('popSub',popSubX,popSubY,`<div class="popSub">${esc(parts.sub)}</div>`)}${text('popGift',popGiftX,popGiftY,`<div class="popGift">${offers}</div>`)}${text('popFooter',popFooterX,popFooterY,`<div class="popFoot">${esc(parts.footer)}</div><div class="popBrand">${esc(salon.salon_name)}</div>`)}</div></div>`;
+}
+function fitModernPop(){
+  const frame=document.querySelector('.popModern');if(!frame)return;
+  const w=frame.clientWidth,h=frame.clientHeight;if(!w||!h)return;
+  const scales={popTitle:fontScale(popFont),popSub:1,popGift:fontScale(popGiftFont),popFooter:fontScale(popFooterFont)};
+  const sizes={popTitle:40,popSub:20,popGift:contents.pop.design_variant==='menu'?32:26,popFooter:15};
+  const blocks=[...frame.querySelectorAll('[data-pop-block]')].sort((a,b)=>parseFloat(a.style.top)-parseFloat(b.style.top));
+  const centers=blocks.map(el=>clamp(parseFloat(el.style.top)/100*h,h*.08,h*.92));
+  blocks.forEach((el,i)=>{const top=i?(centers[i-1]+centers[i])/2:h*.06,bottom=i<blocks.length-1?(centers[i]+centers[i+1])/2:h*.94;
+    let size=sizes[el.dataset.popBlock]*scales[el.dataset.popBlock]*w/620;
+    el.style.fontSize=size+'px';el.querySelectorAll('div').forEach(d=>d.style.fontSize='inherit');
+    const min=el.dataset.popBlock==='popFooter'?11*w/620:12*w/620;
+    while(el.offsetHeight>bottom-top-12*w/620&&size>min){size=Math.max(min,size-1);el.style.fontSize=size+'px';}
+    const y=clamp(centers[i],top+el.offsetHeight/2,bottom-el.offsetHeight/2);
+    el.style.top=(y/h*100)+'%';
+    const half=el.offsetWidth/2;el.style.left=(clamp(parseFloat(el.style.left)/100*w,half+w*.04,w-half-w*.04)/w*100)+'%';
+  });
+  const rects=blocks.map(el=>el.getBoundingClientRect()),bounds=frame.getBoundingClientRect();
+  const bad=rects.some((r,i)=>r.top<bounds.top+h*.03||r.bottom>bounds.bottom-h*.03||(i>0&&r.top<rects[i-1].bottom+2));
+  frame.dataset.overflow=bad?'true':'false';
+  const message=document.getElementById('popFitMsg');if(message)message.textContent=bad?'文字が収まりません。文章を短くするか、文字サイズ・位置を調整してください。':'';
+  return !bad;
+}
+window.addEventListener('resize',()=>{fitModernPop()});
+window.addEventListener('pointerup',()=>{fitModernPop()});
 function render(){
 if(tab==='line'){$('result').innerHTML=`<h3>LINE配信文を編集</h3><label>タイトル</label><textarea id="lineTitle">${esc(contents.line?.title||'')}</textarea><label>本文</label><textarea id="lineBody" style="min-height:330px">${esc(contents.line?.body||'')}</textarea><button class="btn" onclick="saveLineEdit()">LINEを保存</button>
 <button class="btn2" onclick="copyLineText()">文章をコピー</button>
@@ -216,7 +274,7 @@ if(tab==='insta'){$('result').innerHTML=`<h3>Instagram投稿文を編集</h3><la
 <button class="btn2" onclick="openInstagram()">Instagramを開く</button>`;return}
 if(tab==='popdesign'){const head=contents.pop?.headline ?? selected.title,
 sub=contents.pop?.subheadline ?? selected.catch,
-gift=contents.pop?.gift_display ?? selected.gift,fs=fontScale(popFont);$('result').innerHTML=`<div class="popPreview">${imageSrc?`<img class="popBg" src="${imageSrc}">`:''}<div class="popVeil" style="${
+gift=contents.pop?.gift_display ?? selected.gift,fs=fontScale(popFont);$('result').innerHTML=`${contents.pop?.design_version===2?modernPopMarkup():`<div class="popPreview">${imageSrc?`<img class="popBg" src="${imageSrc}">`:''}<div class="popVeil" style="${
   popVeilTone==='dark'
     ? `background:rgba(20,18,16,${popVeilStrength==='light'?.22:popVeilStrength==='strong'?.58:.40})`
     : `background:rgba(255,250,244,${popVeilStrength==='light'?.22:popVeilStrength==='strong'?.58:.40})`
@@ -259,10 +317,10 @@ ${gift ? `
     popFooterFont==='large' ? 'clamp(16px,2.5vw,22px)' :
     'clamp(13px,2.1vw,18px)'
   }">
-    ${esc(contents.pop?.footer_display || `${fmtDate($('start').value)}〜${fmtDate($('end').value)}\n${$('target').value} ／ ${$('conditions').value}`).replace(/\n/g,'<br>')}
+    ${esc((contents.pop?.design_version===2?(contents.pop.footer_display??''):(contents.pop?.footer_display || `${fmtDate($('start').value)}〜${fmtDate($('end').value)}\n${$('target').value} ／ ${$('conditions').value}`))).replace(/\n/g,'<br>')}
   </div>
   <div class="popBrand" style="color:${popTextColor==='white'?'#fff':'#3b332f'}">${esc(salon.salon_name)}</div>
-</div></div></div><div class="controlBox"><h4 class="sectionTitle">POPの文字を調整</h4><p class="helper">プレビュー上の文字をマウス（スマホは指）でつかんで、好きな位置へ移動できます。文字揃えは位置とは別に変更できます。</p><details class="textEditAccordion">
+</div></div></div>`}<div class="controlBox"><h4 class="sectionTitle">POPの文字を調整</h4><p class="helper">プレビュー上の文字をマウス（スマホは指）でつかんで、好きな位置へ移動できます。文字揃えは位置とは別に変更できます。</p><p id="popFitMsg" class="error" role="status"></p><details class="textEditAccordion">
   <summary>テキストを編集</summary>
 
   <label>タイトル（改行可）</label>
@@ -274,7 +332,7 @@ ${gift ? `
   <label>サービス内容（改行可）</label>
   <textarea id="popDesignGift">${esc(gift)}</textarea>
   <label>フッター・条件（改行可）</label>
-<textarea id="popDesignFooter">${esc(contents.pop?.footer_display || `${fmtDate($('start').value)}〜${fmtDate($('end').value)}\n${$('target').value} ／ ${$('conditions').value}`)}</textarea>
+<textarea id="popDesignFooter">${esc((contents.pop?.design_version===2?(contents.pop.footer_display??''):(contents.pop?.footer_display || `${fmtDate($('start').value)}〜${fmtDate($('end').value)}\n${$('target').value} ／ ${$('conditions').value}`)))}</textarea>
 </details><div class="controlGrid">
 
   <div class="controlItem">
@@ -359,7 +417,7 @@ ${gift ? `
   <button class="btn btn2" onclick="restorePopText()">生成時の文章に戻す</button>
   <button class="btn btn2" onclick="downloadPop()">POP画像を保存</button>
 </div>
-</div></div>`;return}
+</div></div>`;requestAnimationFrame(fitModernPop);return}
 if(tab==='image'){const showText=instaTextMode!=='none',showGift=instaTextMode==='titleGift',labels=['人物・施術','サロン空間','イメージビジュアル'],candidateHtml=imageCandidates.length?`<h4 class="sectionTitle">AI画像候補</h4>${imageCandidateLabels.some(label=>label.includes('代替案'))?`
 <p class="helper" style="color:#8a5a44">
 一部の人物・施術画像が生成できなかったため、
@@ -455,6 +513,7 @@ window.openInstagram=()=>{
 };
 window.setPopAlign=v=>{popAlign=v;render()};window.setPopFont=v=>{popFont=v;render()};window.setPopGiftFont=v=>{popGiftFont=v;render()};window.setPopFooterFont=v=>{popFooterFont=v;render()};
 window.restorePopText=()=>{
+  if(contents.pop?.design_version===2&&contents.pop.generated_text){const t=contents.pop.generated_text;$('popDesignHead').value=t.headline??'';$('popDesignSub').value=t.subheadline??'';$('popDesignGift').value=t.gift_display??'';$('popDesignFooter').value=t.footer_display??'';return;}
   $('popDesignHead').value=selected.title||'';
   $('popDesignSub').value=selected.catch||'';
   $('popDesignGift').value=selected.gift||'';
@@ -464,6 +523,8 @@ ${$('target').value} ／ ${$('conditions').value}`;
 };window.savePopDesignText=async()=>{contents.pop={...contents.pop,headline:$('popDesignHead').value,subheadline:$('popDesignSub').value,gift_display:$('popDesignGift').value,
 footer_display:$('popDesignFooter').value,
 layout:{
+  ...contents.pop?.layout,
+  textColor:popTextColor,veilTone:popVeilTone,veilStrength:popVeilStrength,
   titleX:Math.round(popTitleX*10)/10,
   titleY:Math.round(popTitleY*10)/10,
   subX:Math.round(popSubX*10)/10,
@@ -576,14 +637,16 @@ instaGiftFont,
 instaFooterFont,
 instaAlign};const{error}=await sb.from('promotion_images').update({generation_instruction:JSON.stringify(meta)}).eq('id',cur.id);if(error)throw error}$('saveMsg').textContent='画像の文字設定を保存しました。';$('saveMsg').className='ok';render()}catch(e){$('saveMsg').textContent=e.message;$('saveMsg').className='error'}};
 window.openPromo=async id=>{const{data:p,error}=await sb.from('promotions').select('*').eq('id',id).single();if(error)return alert(error.message);currentPromoId=id;selected=p.selected_plan||{title:p.theme,gift:p.gift_request,catch:''};outputs=p.requested_outputs||[];$('requiredContent').value=typeof p.selected_plan?.input_details?.required_content==='string'?p.selected_plan.input_details.required_content:'';$('benefits').value=typeof p.selected_plan?.input_details?.benefits==='string'?p.selected_plan.input_details.benefits:'';$('start').value=p.start_date;$('end').value=p.end_date;$('theme').value=p.theme||'';const goalOptions=Array.from($('promotionGoal').options).map(o=>o.value);const savedGoal=p.sales_goal||'通常の来店を促したい';$('promotionGoal').value=goalOptions.includes(savedGoal)?savedGoal:'other';$('promotionGoalOther').value=goalOptions.includes(savedGoal)?'':savedGoal;$('promotionGoalOther').style.display=$('promotionGoal').value==='other'?'block':'none';$('gift').value=p.gift_request||'';$('target').value=p.target||'';$('conditions').value=p.conditions||'';contents={};const{data:cs}=await sb.from('promotion_contents').select('*').eq('promotion_id',id).eq('is_current',true);for(const c of cs||[]){if(c.content_type==='pop'){try{contents.pop=JSON.parse(c.body)}catch{contents.pop={headline:c.title||'',subheadline:'',body:c.body,footer:''}}}if(c.content_type==='line')contents.line={title:c.title||'',body:c.body};if(c.content_type==='instagram')contents.instagram={caption:c.body,hashtags:c.hashtags||[]}}if((outputs.includes('image')||outputs.includes('pop'))&&!contents.image)contents.image={prompt_ja:`${selected.title} ${selected.gift} 女性向けエステサロンの上品な施術イメージ`};popTitleX=Number(contents.pop?.layout?.titleX ?? contents.pop?.layout?.x)||50;
-popTitleY=Number(contents.pop?.layout?.titleY ?? contents.pop?.layout?.y)||28;
+popTitleY=Number(contents.pop?.layout?.titleY ?? contents.pop?.layout?.y)||(contents.pop?.design_version===2?17:28);
 popSubX=Number(contents.pop?.layout?.subX)||50;
-popSubY=Number(contents.pop?.layout?.subY)||43;
+popSubY=Number(contents.pop?.layout?.subY)||(contents.pop?.design_version===2?31:43);
 popGiftX=Number(contents.pop?.layout?.giftX)||50;
-popGiftY=Number(contents.pop?.layout?.giftY)||62;
+popGiftY=Number(contents.pop?.layout?.giftY)||(contents.pop?.design_version===2?57:62);
 popFooterX=Number(contents.pop?.layout?.footerX)||50;
 popAlign=contents.pop?.layout?.align||'center';popFont=contents.pop?.layout?.font||'medium';
-popGiftFont=contents.pop?.layout?.giftfont||'medium';
+popGiftFont=contents.pop?.layout?.giftFont||contents.pop?.layout?.giftfont||'medium';
+popFooterY=Number(contents.pop?.layout?.footerY)||(contents.pop?.design_version===2?87:82);
+if(contents.pop?.design_version===2){popTextColor=contents.pop.layout?.textColor||'dark';popVeilTone=contents.pop.layout?.veilTone||'light';popVeilStrength=contents.pop.layout?.veilStrength||'medium';}
 popFooterFont=contents.pop?.layout?.footerFont||'medium';
 overlayTitle=contents.pop?.headline||selected.title;overlayGift=contents.pop?.gift_display||selected.gift;overlayFooter=`${fmtDate($('start').value)}〜${fmtDate($('end').value)} ／ ${$('conditions').value}`;instaTextMode='titleGift';
 instaTitleX=50;instaTitleY=28;
@@ -612,6 +675,7 @@ window.downloadPop=async()=>{
       await document.fonts.ready;
     }
 
+    if(contents.pop?.design_version===2&&fitModernPop()===false)return alert('文字が収まりません。文章・サイズ・位置を調整してから保存してください。');
     const scale=1240/el.getBoundingClientRect().width;
 
     const canvas=await html2canvas(el,{
