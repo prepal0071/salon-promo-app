@@ -147,6 +147,7 @@ justify-content:flex-start;
 .popFour .popOffer:last-child{border-bottom:0}
 .popFour .popGift,.popFour .popH{font-family:"Noto Serif CJK JP","Yu Mincho","Hiragino Mincho ProN",serif}
 .popFour .popH{letter-spacing:.02em}
+.popFontRow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:12px 0}.popFontRow label{margin:0}.popFontRow>div{display:flex;align-items:center;gap:6px}.popFontRow input{width:80px;padding:8px}.popFontRow button{min-width:36px;min-height:36px;border:1px solid var(--line);border-radius:8px;background:#fff}
 </style></head><body><main class="wrap"><div class="head"><div><div>
   <h2 style="margin:0">SALON PROMO</h2>
   <div style="font-size:12px;letter-spacing:.08em;color:var(--muted);margin-top:3px">AI Promotion Studio</div>
@@ -199,6 +200,7 @@ window.addEventListener('pointermove',e=>{if(!dragState)return;const r=dragState
 });
 window.addEventListener('pointerup',()=>{if(!dragState)return;dragState.el.classList.remove('dragging');dragState=null});
 function textPosStyle(x,y,a){return`left:${x}%;top:${y}%;text-align:${a};`}
+let popFontScales = {};
 function fontScale(s){return s==='small'?.84:s==='large'?1.16:1}
 async function boot(){const{data:{user:u}}=await sb.auth.getUser();user=u;if(!u)return show('login');const{data:s}=await sb.from('salons').select('*').limit(1).maybeSingle();salon=s;if(!s){editingSalon=false;$('setupTitle').textContent='サロン初期設定';$('setupCancel').classList.add('hide');return show('setup')}const{data:st}=await sb.from('salon_settings').select('*').eq('salon_id',s.id).maybeSingle();settings=st||{};$('salonName').textContent=s.salon_name;await hist();show('home')}
 $('loginBtn').onclick=async()=>{const{error}=await sb.auth.signInWithPassword({email:$('email').value,password:$('password').value});$('loginMsg').textContent=error?error.message:'';if(!error)boot()};
@@ -239,7 +241,56 @@ const POP_LAYOUTS = {
 function isFourPop(){return contents.pop?.design_version!=null&&contents.pop.design_version!==2;}
 function isModernPop(){return contents.pop?.design_version!=null;}
 function popProfile(){const variant=contents.pop?.design_variant;return contents.pop?.design_version===3&&Object.hasOwn(POP_LAYOUTS,variant)?POP_LAYOUTS[variant]:POP_LAYOUTS.menu;}
+const POP_FONT_KEYS = {title:'タイトル',sub:'サブタイトル',gift:'サービス・特典',footer:'期間・条件'};
+function popScale(key){
+ const fallback={title:fontScale(popFont),sub:1,gift:fontScale(popGiftFont),footer:fontScale(popFooterFont)};
+ return popFontScales[key] ?? fallback[key];
+}
+function restorePopFontScales(){
+ popFontScales={};
+ if(!isModernPop())return;
+ const saved=contents.pop.layout?.fontScales;
+ for(const key of Object.keys(POP_FONT_KEYS)){
+  const value=saved?.[key];
+  if(typeof value==='number'&&Number.isFinite(value)&&value>=.5&&value<=1.5)popFontScales[key]=Math.round(value*100)/100;
+ }
+}
+function popFontControls(){
+ if(!isModernPop())return '';
+ return `<details class="textEditAccordion"><summary>文字サイズを細かく調整</summary>${Object.entries(POP_FONT_KEYS).map(([key,label])=>`<div class="popFontRow"><label for="popScale-${key}">${label}</label><div><button type="button" aria-label="${label}を1％小さく" onclick="adjustPopScale('${key}',-1)">−</button><input id="popScale-${key}" type="number" min="50" max="150" step="1" value="${Math.round(popScale(key)*100)}" oninput="inputPopScale('${key}',this)" onblur="this.value=Math.round(popScale('${key}')*100)"><span>％</span><button type="button" aria-label="${label}を1％大きく" onclick="adjustPopScale('${key}',1)">＋</button></div></div>`).join('')}<button type="button" class="btn btn2" onclick="resetPopScales()">サイズを初期値に戻す</button></details>`;
+}
+function refreshPopFontPreview(){
+ const frame=document.querySelector('.popPreview');if(!frame||!isModernPop())return;
+ // Use unsaved editor text without changing the persisted content or replacing controls.
+ const saved=contents.pop;
+ contents.pop={...saved,headline:$('popDesignHead')?.value??saved.headline,subheadline:$('popDesignSub')?.value??saved.subheadline,gift_display:$('popDesignGift')?.value??saved.gift_display,footer_display:$('popDesignFooter')?.value??saved.footer_display};
+ try{frame.outerHTML=modernPopMarkup();}finally{contents.pop=saved;}
+ fitModernPop();
+ for(const key of Object.keys(POP_FONT_KEYS)){
+  const input=$('popScale-'+key);if(input&&input!==document.activeElement)input.value=Math.round(popScale(key)*100);
+ }
+ for(const button of document.querySelectorAll('[data-pop-font-key]'))button.classList.toggle('active',Math.abs(popScale(button.dataset.popFontKey)-fontScale(button.dataset.popFontValue))<.001);
+}
+window.inputPopScale=(key,input)=>{
+ if(input.value.trim()==='')return;
+ const value=Number(input.value);if(!Number.isFinite(value))return;
+ popFontScales[key]=clamp(Math.round(value),50,150)/100;
+ refreshPopFontPreview();
+};
+window.adjustPopScale=(key,delta)=>{
+ popFontScales[key]=clamp(Math.round(popScale(key)*100)+delta,50,150)/100;
+ refreshPopFontPreview();
+};
+window.resetPopScales=()=>{
+ popFontScales={title:1,sub:1,gift:1,footer:1};popFont=popGiftFont=popFooterFont='medium';refreshPopFontPreview();
+};
+function setPopPreset(key,value){
+ if(key==='title')popFont=value;else if(key==='gift')popGiftFont=value;else popFooterFont=value;
+ if(!isModernPop()){render();return;}
+ popFontScales[key]=fontScale(value);refreshPopFontPreview();
+}
 function restoreFourPopLayout(){
+ restorePopFontScales();
  if(!isFourPop())return;
  const p=popProfile(),l=contents.pop.layout||{},num=(key,fallback)=>typeof l[key]==='number'&&Number.isFinite(l[key])?clamp(l[key],0,100):fallback;
  popTitleX=num('titleX',p.blocks.popTitle.x);popTitleY=num('titleY',p.blocks.popTitle.y);
@@ -264,24 +315,27 @@ function fitFourPop(){
  const frame=document.querySelector('.popFour');if(!frame)return;
  const w=frame.clientWidth,h=frame.clientHeight;if(!w||!h)return;
  const p=popProfile(),margin=p.margin/100,gap=p.gap*w/620;
- const scales={popTitle:fontScale(popFont),popSub:1,popGift:fontScale(popGiftFont),popFooter:fontScale(popFooterFont)};
+ const scales={popTitle:popScale('title'),popSub:popScale('sub'),popGift:popScale('gift'),popFooter:popScale('footer')};
  const blocks=[...frame.querySelectorAll('[data-pop-block]')].filter(el=>el.textContent.trim()).sort((a,b)=>parseFloat(a.style.top)-parseFloat(b.style.top));
+ let autoShrunk=false;
  const centers=blocks.map(el=>clamp(parseFloat(el.style.top)/100*h,margin*h,(1-margin)*h));
  blocks.forEach((el,i)=>{
   const top=i?(centers[i-1]+centers[i])/2:margin*h,bottom=i<blocks.length-1?(centers[i]+centers[i+1])/2:(1-margin)*h;
   let size=p.blocks[el.dataset.popBlock].size*scales[el.dataset.popBlock]*w/620;
+  const requestedSize=size;
   const minimum=(el.dataset.popBlock==='popFooter'?12:14)*w/620;
   el.style.padding=`${gap/2}px ${gap}px`;el.style.boxSizing='border-box';
   el.querySelectorAll('div').forEach(d=>d.style.fontSize='inherit');
   el.style.fontSize=size+'px';
   while((el.offsetHeight>bottom-top-gap||el.scrollWidth>el.clientWidth+1)&&size>minimum){size=Math.max(minimum,size-0.5);el.style.fontSize=size+'px';}
+  autoShrunk ||= size<requestedSize;
   const y=clamp(centers[i],top+gap/2+el.offsetHeight/2,bottom-gap/2-el.offsetHeight/2);
   el.style.top=(y/h*100)+'%';
   const half=el.offsetWidth/2;el.style.left=(clamp(parseFloat(el.style.left)/100*w,half+margin*w,w-half-margin*w)/w*100)+'%';
  });
  const bounds=frame.getBoundingClientRect(),rects=blocks.map(el=>el.getBoundingClientRect());
  const bad=rects.some((r,i)=>r.left<bounds.left+margin*w-1||r.right>bounds.right-margin*w+1||r.top<bounds.top+margin*h-1||r.bottom>bounds.bottom-margin*h+1||(i&&r.top<rects[i-1].bottom+gap-1)||blocks[i].scrollWidth>blocks[i].clientWidth+1);
- frame.dataset.overflow=bad?'true':'false';const message=document.getElementById('popFitMsg');if(message)message.textContent=bad?'文字が収まりません。文章を短くするか、文字サイズ・位置を調整してください。':'';
+ frame.dataset.overflow=bad?'true':'false';const message=document.getElementById('popFitMsg');if(message)message.textContent=bad?'文字が収まりません。文章を短くするか、文字サイズ・位置を調整してください。':autoShrunk?'収まるよう自動調整しています。':'';
  return !bad;
 }
 function captureFourPopPositions(){
@@ -314,15 +368,18 @@ function fitModernPop(){
   if(isFourPop())return fitFourPop();
   const frame=document.querySelector('.popModern');if(!frame)return;
   const w=frame.clientWidth,h=frame.clientHeight;if(!w||!h)return;
-  const scales={popTitle:fontScale(popFont),popSub:1,popGift:fontScale(popGiftFont),popFooter:fontScale(popFooterFont)};
+  const scales={popTitle:popScale('title'),popSub:popScale('sub'),popGift:popScale('gift'),popFooter:popScale('footer')};
   const sizes={popTitle:40,popSub:20,popGift:contents.pop.design_variant==='menu'?32:26,popFooter:15};
   const blocks=[...frame.querySelectorAll('[data-pop-block]')].sort((a,b)=>parseFloat(a.style.top)-parseFloat(b.style.top));
+  let autoShrunk=false;
   const centers=blocks.map(el=>clamp(parseFloat(el.style.top)/100*h,h*.08,h*.92));
   blocks.forEach((el,i)=>{const top=i?(centers[i-1]+centers[i])/2:h*.06,bottom=i<blocks.length-1?(centers[i]+centers[i+1])/2:h*.94;
     let size=sizes[el.dataset.popBlock]*scales[el.dataset.popBlock]*w/620;
     el.style.fontSize=size+'px';el.querySelectorAll('div').forEach(d=>d.style.fontSize='inherit');
+    const requestedSize=size;
     const min=el.dataset.popBlock==='popFooter'?11*w/620:12*w/620;
     while(el.offsetHeight>bottom-top-12*w/620&&size>min){size=Math.max(min,size-1);el.style.fontSize=size+'px';}
+    autoShrunk ||= size<requestedSize;
     const y=clamp(centers[i],top+el.offsetHeight/2,bottom-el.offsetHeight/2);
     el.style.top=(y/h*100)+'%';
     const half=el.offsetWidth/2;el.style.left=(clamp(parseFloat(el.style.left)/100*w,half+w*.04,w-half-w*.04)/w*100)+'%';
@@ -330,7 +387,7 @@ function fitModernPop(){
   const rects=blocks.map(el=>el.getBoundingClientRect()),bounds=frame.getBoundingClientRect();
   const bad=rects.some((r,i)=>r.top<bounds.top+h*.03||r.bottom>bounds.bottom-h*.03||(i>0&&r.top<rects[i-1].bottom+2));
   frame.dataset.overflow=bad?'true':'false';
-  const message=document.getElementById('popFitMsg');if(message)message.textContent=bad?'文字が収まりません。文章を短くするか、文字サイズ・位置を調整してください。':'';
+  const message=document.getElementById('popFitMsg');if(message)message.textContent=bad?'文字が収まりません。文章を短くするか、文字サイズ・位置を調整してください。':autoShrunk?'収まるよう自動調整しています。':'';
   return !bad;
 }
 window.addEventListener('resize',()=>{fitModernPop()});
@@ -421,8 +478,8 @@ ${gift ? `
     <label>タイトルサイズ</label>
     <div class="seg">
       ${['small','medium','large'].map(v=>`
-        <button class="${popFont===v?'active':''}"
-          onclick="setPopFont('${v}')">
+        <button class="${(isModernPop()?Math.abs(popScale('title')-fontScale(v))<.001:popFont===v)?'active':''}"
+          data-pop-font-key="title" data-pop-font-value="${v}" onclick="setPopFont('${v}')">
           ${v==='small'?'小':v==='medium'?'標準':'大'}
         </button>
       `).join('')}
@@ -433,8 +490,8 @@ ${gift ? `
     <label>サービスサイズ</label>
     <div class="seg">
       ${['small','medium','large'].map(v=>`
-        <button class="${popGiftFont===v?'active':''}"
-          onclick="setPopGiftFont('${v}')">
+        <button class="${(isModernPop()?Math.abs(popScale('gift')-fontScale(v))<.001:popGiftFont===v)?'active':''}"
+          data-pop-font-key="gift" data-pop-font-value="${v}" onclick="setPopGiftFont('${v}')">
           ${v==='small'?'小':v==='medium'?'標準':'大'}
         </button>
       `).join('')}
@@ -444,13 +501,14 @@ ${gift ? `
   <label>期間・条件サイズ</label>
   <div class="seg">
     ${['small','medium','large'].map(v=>`
-      <button class="${popFooterFont===v?'active':''}"
-        onclick="setPopFooterFont('${v}')">
+      <button class="${(isModernPop()?Math.abs(popScale('footer')-fontScale(v))<.001:popFooterFont===v)?'active':''}"
+        data-pop-font-key="footer" data-pop-font-value="${v}" onclick="setPopFooterFont('${v}')">
         ${v==='small'?'小':v==='medium'?'標準':'大'}
       </button>
     `).join('')}
   </div>
 </div>
+${popFontControls()}
   <div class="controlItem">
     <label>文字色</label>
     <div class="seg">
@@ -581,7 +639,7 @@ window.copyInstaText=async()=>{
 window.openInstagram=()=>{
   window.open('https://www.instagram.com/','_blank');
 };
-window.setPopAlign=v=>{popAlign=v;render()};window.setPopFont=v=>{popFont=v;render()};window.setPopGiftFont=v=>{popGiftFont=v;render()};window.setPopFooterFont=v=>{popFooterFont=v;render()};
+window.setPopAlign=v=>{popAlign=v;render()};window.setPopFont=v=>setPopPreset('title',v);window.setPopGiftFont=v=>setPopPreset('gift',v);window.setPopFooterFont=v=>setPopPreset('footer',v);
 window.restorePopText=()=>{
   if(isModernPop()&&contents.pop.generated_text){const t=contents.pop.generated_text;$('popDesignHead').value=t.headline??'';$('popDesignSub').value=t.subheadline??'';$('popDesignGift').value=t.gift_display??'';$('popDesignFooter').value=t.footer_display??'';return;}
   $('popDesignHead').value=selected.title||'';
@@ -594,6 +652,7 @@ ${$('target').value} ／ ${$('conditions').value}`;
 footer_display:$('popDesignFooter').value,
 layout:{
   ...contents.pop?.layout,
+  ...(isModernPop()?{fontScales:Object.fromEntries(Object.keys(POP_FONT_KEYS).map(key=>[key,popScale(key)]))}:{}),
   textColor:popTextColor,veilTone:popVeilTone,veilStrength:popVeilStrength,
   titleX:Math.round(popTitleX*10)/10,
   titleY:Math.round(popTitleY*10)/10,
