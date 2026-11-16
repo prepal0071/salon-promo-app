@@ -190,6 +190,7 @@ justify-content:flex-start;
 }
 .popBackgroundControls{padding:10px;background:#fff;border:1px solid var(--line);border-radius:10px}.popBackgroundControls>label{margin-top:0}.popBackgroundControls .seg{display:flex;flex-wrap:wrap;gap:6px}.popBackgroundControls input[type="range"]{padding:0;min-height:44px;accent-color:var(--accent)}
 .popBrandControls{margin:12px 0}.popBrandControls .check{justify-content:flex-start}.popBrandControls input[type="checkbox"]{width:auto;min-height:0}
+.instaFrame>img{position:absolute}.instaFrame .instaText>div{white-space:pre-wrap;overflow-wrap:anywhere}
 </style></head><body><main class="wrap"><div class="head"><div><div>
   <h2 style="margin:0">SALON PROMO</h2>
   <div style="font-size:12px;letter-spacing:.08em;color:var(--muted);margin-top:3px">AI Promotion Studio</div>
@@ -212,12 +213,8 @@ popSubX=50,popSubY=43,
 popGiftX=50,popGiftY=62,
 popFooterX=50,popFooterY=82,
 popAlign='center',popFont='medium',popGiftFont='medium',popFooterFont='medium',
-popTextColor='dark',popVeilTone='light',popVeilStrength='medium',instaTextMode='titleGift',
-instaTitleFont='medium',instaGiftFont='medium',instaFooterFont='medium',
-instaTitleX=50,instaTitleY=28,
-instaGiftX=50,instaGiftY=58,
-instaFooterX=50,instaFooterY=84,
-instaAlign='center';overlayTitle='',overlayGift='',overlayFooter='';let dragState=null;
+popTextColor='dark',popVeilTone='light',popVeilStrength='medium';let dragState=null;
+let instagramEditor=createInstagramEditor(),imageRecordId=null,imageRecordType=null;
 const $=x=>document.getElementById(x);
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 function show(id){stopPopScaleHold(true);['login','forgot','newPassword','setup','home','form','plansSec','confirm','results'].forEach(x=>$(x).classList.toggle('hide',x!==id));$('logout').classList.toggle('hide',!['setup','home','form','plansSec','confirm','results'].includes(id))}
@@ -233,11 +230,11 @@ window.addEventListener('pointermove',e=>{if(!dragState)return;const r=dragState
 }else if(dragState.type==='popFooter'){
   popFooterX=x;popFooterY=y;
 }else if(dragState.type==='instaTitle'){
-  instaTitleX=x;instaTitleY=y;
+  instagramEditor.blocks.title.x=x;instagramEditor.blocks.title.y=y;
 }else if(dragState.type==='instaGift'){
-  instaGiftX=x;instaGiftY=y;
+  instagramEditor.blocks.gift.x=x;instagramEditor.blocks.gift.y=y;
 }else if(dragState.type==='instaFooter'){
-  instaFooterX=x;instaFooterY=y;
+  instagramEditor.blocks.footer.x=x;instagramEditor.blocks.footer.y=y;
 }
 });
 window.addEventListener('pointerup',()=>{if(!dragState)return;dragState.el.classList.remove('dragging');dragState=null});
@@ -260,18 +257,15 @@ async function api(url,body){const r=await fetch(url,{method:'POST',headers:{'Co
 async function gen(){outputs=selectedOutputs();if(!outputs.length){$('formMsg').textContent='作成するものを1つ以上選んでください。';return}$('formMsg').textContent='';try{const j=await api('/api/plans',{salon:settings,required_content:$('requiredContent').value,benefits:$('benefits').value,promotion_goal:$('promotionGoal').value==='other'?$('promotionGoalOther').value:$('promotionGoal').value,start_date:$('start').value,end_date:$('end').value,theme:$('theme').value,gift_request:$('gift').value,target:$('target').value,conditions:$('conditions').value,note:$('note').value});plans=j.plans;$('plans').innerHTML=plans.map(p=>`<div class="plan ${p.recommended?'reco':''}"><span class="tag">PLAN ${p.id}${p.recommended?'・おすすめ':''}</span><h3>${esc(p.title)}</h3><p><b>${esc(p.gift)}</b></p><p>${esc(p.reason)}</p><button class="btn" onclick="choose('${p.id}')">このプランにする</button></div>`).join('');show('plansSec')}catch(e){$('formMsg').textContent=e.message}}
 $('propose').onclick=gen;$('regen').onclick=gen;
 window.choose=id=>{selected=plans.find(p=>p.id===id);$('summary').innerHTML=`<div>企画</div><div><b>${esc(selected.title)}</b></div><div>キャッチ</div><div>${esc(selected.catch)}</div><div>期間</div><div>${$('start').value} ～ ${$('end').value}</div><div>サービス</div><div>${esc(selected.gift)}</div>`;show('confirm')};
-$('make').onclick=async()=>{try{contents=await api('/api/contents',{salon:settings,plan:selected,required_content:$('requiredContent').value,benefits:$('benefits').value,promotion_goal:$('promotionGoal').value==='other'?$('promotionGoalOther').value:$('promotionGoal').value,start_date:$('start').value,end_date:$('end').value,target:$('target').value,conditions:$('conditions').value,line_emoji:$('lineEmoji').value,instagram_emoji:$('instaEmoji').value,outputs});const{data:p,error}=await sb.from('promotions').insert({salon_id:salon.id,created_by:user.id,start_date:$('start').value,end_date:$('end').value,theme:$('theme').value,gift_request:$('gift').value,sales_goal:$('promotionGoal').value==='other'?$('promotionGoalOther').value:$('promotionGoal').value,target:$('target').value,conditions:$('conditions').value,requested_outputs:outputs,plan_candidates:plans,selected_plan:{...selected,input_details:{required_content:$('requiredContent').value,benefits:$('benefits').value}},status:'generated'}).select().single();if(error)throw error;currentPromoId=p.id;const rows=[];if(contents.pop)rows.push({promotion_id:p.id,content_type:'pop',title:contents.pop.headline,body:JSON.stringify(contents.pop),hashtags:[],version:1,is_current:true});if(contents.line)rows.push({promotion_id:p.id,content_type:'line',title:contents.line.title,body:contents.line.body,hashtags:[],version:1,is_current:true});if(contents.instagram)rows.push({promotion_id:p.id,content_type:'instagram',title:selected.title,body:contents.instagram.caption,hashtags:contents.instagram.hashtags||[],version:1,is_current:true});if(rows.length){const{error:e}=await sb.from('promotion_contents').insert(rows);if(e)throw e}imageSrc='';imageCandidates=[];imageStatus='';overlayTitle=contents.pop?.headline||selected.title;overlayGift=contents.pop?.gift_display||selected.gift;overlayFooter=`${fmtDate($('start').value)}〜${fmtDate($('end').value)} ／ ${$('conditions').value}`;popTitleX=Number(contents.pop?.layout?.titleX ?? contents.pop?.layout?.x)||50;
+$('make').onclick=async()=>{try{contents=await api('/api/contents',{salon:settings,plan:selected,required_content:$('requiredContent').value,benefits:$('benefits').value,promotion_goal:$('promotionGoal').value==='other'?$('promotionGoalOther').value:$('promotionGoal').value,start_date:$('start').value,end_date:$('end').value,target:$('target').value,conditions:$('conditions').value,line_emoji:$('lineEmoji').value,instagram_emoji:$('instaEmoji').value,outputs});const{data:p,error}=await sb.from('promotions').insert({salon_id:salon.id,created_by:user.id,start_date:$('start').value,end_date:$('end').value,theme:$('theme').value,gift_request:$('gift').value,sales_goal:$('promotionGoal').value==='other'?$('promotionGoalOther').value:$('promotionGoal').value,target:$('target').value,conditions:$('conditions').value,requested_outputs:outputs,plan_candidates:plans,selected_plan:{...selected,input_details:{required_content:$('requiredContent').value,benefits:$('benefits').value}},status:'generated'}).select().single();if(error)throw error;currentPromoId=p.id;const rows=[];if(contents.pop)rows.push({promotion_id:p.id,content_type:'pop',title:contents.pop.headline,body:JSON.stringify(contents.pop),hashtags:[],version:1,is_current:true});if(contents.line)rows.push({promotion_id:p.id,content_type:'line',title:contents.line.title,body:contents.line.body,hashtags:[],version:1,is_current:true});if(contents.instagram)rows.push({promotion_id:p.id,content_type:'instagram',title:selected.title,body:contents.instagram.caption,hashtags:contents.instagram.hashtags||[],version:1,is_current:true});if(rows.length){const{error:e}=await sb.from('promotion_contents').insert(rows);if(e)throw e}imageSrc='';imageCandidates=[];imageStatus='';popTitleX=Number(contents.pop?.layout?.titleX ?? contents.pop?.layout?.x)||50;
 popTitleY=Number(contents.pop?.layout?.titleY ?? contents.pop?.layout?.y)||(contents.pop?.design_version===2?17:28);
 popSubX=Number(contents.pop?.layout?.subX)||50;
 popSubY=Number(contents.pop?.layout?.subY)||(contents.pop?.design_version===2?31:43);
 popGiftX=Number(contents.pop?.layout?.giftX)||50;
 popGiftY=Number(contents.pop?.layout?.giftY)||(contents.pop?.design_version===2?57:62);
 popFooterX=Number(contents.pop?.layout?.footerX)||50;
-popFooterY=Number(contents.pop?.layout?.footerY)||(contents.pop?.design_version===2?87:82);popAlign=contents.pop?.layout?.align||'center';popFont=contents.pop?.layout?.font||'medium';instaTextMode='titleGift';
-instaTitleX=50;instaTitleY=28;
-instaGiftX=50;instaGiftY=58;
-instaFooterX=50;instaFooterY=84;
-instaAlign='center';if(contents.pop?.design_version===2){popTitleX=50;popTitleY=17;popSubX=50;popSubY=31;popGiftX=50;popGiftY=57;popFooterX=50;popFooterY=87;popFont='medium';popGiftFont='medium';popFooterFont='medium';popTextColor='dark';popVeilTone='light';popVeilStrength='medium';}restoreFourPopLayout();$('rtitle').textContent=selected.title;buildTabs();show('results')}catch(e){$('confirmMsg').textContent=e.message}};
+popFooterY=Number(contents.pop?.layout?.footerY)||(contents.pop?.design_version===2?87:82);popAlign=contents.pop?.layout?.align||'center';popFont=contents.pop?.layout?.font||'medium';
+if(contents.pop?.design_version===2){popTitleX=50;popTitleY=17;popSubX=50;popSubY=31;popGiftX=50;popGiftY=57;popFooterX=50;popFooterY=87;popFont='medium';popGiftFont='medium';popFooterFont='medium';popTextColor='dark';popVeilTone='light';popVeilStrength='medium';}restoreFourPopLayout();resetInstagramEditor();$('rtitle').textContent=selected.title;buildTabs();show('results')}catch(e){$('confirmMsg').textContent=e.message}};
 function buildTabs(){const t=[];if(outputs.includes('pop'))t.push(['popdesign','POP']);if(outputs.includes('line'))t.push(['line','LINE']);if(outputs.includes('instagram'))t.push(['insta','Instagram']);if(outputs.includes('image')||outputs.includes('pop'))t.push(['image',outputs.includes('image')?'Instagram画像':'画像選択']);$('tabs').innerHTML=t.map((x,i)=>`<button class="tab ${i===0?'active':''}" data-t="${x[0]}">${x[1]}</button>`).join('');tab=t[0]?.[0]||'';document.querySelectorAll('.tab').forEach(x=>x.onclick=()=>{document.querySelectorAll('.tab').forEach(y=>y.classList.remove('active'));x.classList.add('active');tab=x.dataset.t;render()});render()}
 // V3 profiles are the single source for positions, widths, sizes and spacing.
 const POP_LAYOUTS = {
@@ -643,8 +637,8 @@ window.setPopAppearance=(key,value)=>{
  const values={align:popAlign,color:popTextColor,veil:popVeilTone,strength:popVeilStrength};
  document.querySelectorAll('[data-pop-appearance]').forEach(button=>button.classList.toggle('active',button.dataset.value===values[button.dataset.popAppearance]));
 };
-window.addEventListener('resize',()=>{sizePopEditor();fitModernPop();syncPopBrandControls()});
-window.addEventListener('pointerup',()=>{fitModernPop()});
+window.addEventListener('resize',()=>{sizePopEditor();fitModernPop();syncPopBrandControls();layoutInstaPreview()});
+window.addEventListener('pointerup',()=>{fitModernPop();layoutInstaPreview()});
 function capturePopEditorState(){
  const editor=document.querySelector('.popEditor');
  if(!editor||editor.popOwner!==selected||editor.popId!==currentPromoId)return null;
@@ -704,6 +698,7 @@ ${gift ? `
 </div></div></div>`;
 }
 function render(){
+captureInstaDraft();
 stopPopScaleHold(true);
 const popEditorState=tab==='popdesign'?capturePopEditorState():null;
 if(tab==='line'){$('result').innerHTML=`<h3>LINE配信文を編集</h3><label>タイトル</label><textarea id="lineTitle">${esc(contents.line?.title||'')}</textarea><label>本文</label><textarea id="lineBody" style="min-height:330px">${esc(contents.line?.body||'')}</textarea><button class="btn" onclick="saveLineEdit()">LINEを保存</button>
@@ -793,73 +788,36 @@ ${popVeilControls()}
   <button class="btn btn2" onclick="restorePopText()">生成時の文章に戻す</button>
   <button class="btn btn2" onclick="downloadPop()">POP画像を保存</button>
 </div></aside></div>`;restorePopEditorState(popEditorState);requestAnimationFrame(()=>{sizePopEditor();fitModernPop();syncPopBrandControls()});return}
-if(tab==='image'){const showText=instaTextMode!=='none',showGift=instaTextMode==='titleGift',labels=['人物・施術','サロン空間','イメージビジュアル'],candidateHtml=imageCandidates.length?`<h4 class="sectionTitle">AI画像候補</h4>${imageCandidateLabels.some(label=>label.includes('代替案'))?`
+if(tab==='image'){const labels=['人物・施術','サロン空間','イメージビジュアル'],candidateHtml=imageCandidates.length?`<h4 class="sectionTitle">AI画像候補</h4>${imageCandidateLabels.some(label=>label.includes('代替案'))?`
 <p class="helper" style="color:#8a5a44">
 一部の人物・施術画像が生成できなかったため、
 近い雰囲気の代替案を含めています。
 再生成すると別の人物・施術画像が生成される場合があります。
 </p>
-`:''}<p class="helper">今回は方向性を変えた3案です。使いたい画像をクリックしてください。</p><div class="candidateGrid">${imageCandidates.map((src,i)=>`<div class="candidate ${imageSrc===src?'active':''}" onclick="chooseImageCandidate(${i})"><img src="${src}"><div style="text-align:center;margin-top:6px">${imageCandidateLabels[i]||labels[i]||`候補 ${i+1}`}</div></div>`).join('')}</div>`:'';$('result').innerHTML=`<div style="text-align:center">${imageSrc?`<div class="instaFrame"><img src="${imageSrc}">${showText?'<div class="instaVeil"></div>':''}${showText?`
-<div class="instaOverlay">
-  <div class="instaText"
-    onpointerdown="startDrag(event,'instaTitle')"
-    style="${textPosStyle(instaTitleX,instaTitleY,instaAlign)}">
-    <div class="instaTitle"
-  style="font-size:${
-    instaTitleFont==='small' ? 'clamp(24px,5vw,46px)' :
-    instaTitleFont==='large' ? 'clamp(38px,7.5vw,72px)' :
-    'clamp(30px,6.2vw,60px)'
-  }">${esc(overlayTitle).replace(/\n/g,'<br>')}</div>
-  </div>
-
-  ${showGift?`
-  <div class="instaText"
-    onpointerdown="startDrag(event,'instaGift')"
-    style="${textPosStyle(instaGiftX,instaGiftY,instaAlign)}">
-    <div class="instaGift"
-  style="font-size:${
-    instaGiftFont==='small' ? 'clamp(18px,3.5vw,30px)' :
-    instaGiftFont==='large' ? 'clamp(30px,5.5vw,48px)' :
-    'clamp(24px,4.5vw,38px)'
-  }">${esc(overlayGift).replace(/\n/g,'<br>')}</div>
-  </div>`:''}
-
-  ${overlayFooter?`
-  <div class="instaText"
-    onpointerdown="startDrag(event,'instaFooter')"
-    style="${textPosStyle(instaFooterX,instaFooterY,instaAlign)}">
-    <div class="instaFoot"
-  style="font-size:${
-    instaFooterFont==='small' ? 'clamp(12px,2.2vw,20px)' :
-    instaFooterFont==='large' ? 'clamp(20px,3.6vw,32px)' :
-    'clamp(16px,2.8vw,25px)'
-  }">${esc(overlayFooter).replace(/\n/g,'<br>')}</div>
-  </div>`:''}
-</div>
-`:''}</div>`:'<p class="muted">まだ画像は選ばれていません。</p>'}<div class="controlBox"><h4 class="sectionTitle">画像を選ぶ</h4><p class="helper">AIは低画質で「人物・施術」「サロン空間」「イメージビジュアル」の3方向を作ります。</p><div class="quick"><button onclick="setRevision('施術を受けている大人女性を主役にしてください。施術者の手元も自然に見せてください。')">施術シーン</button><button onclick="setRevision('より上質で高級感のあるサロン空間にしてください。')">もっと高級感</button><button onclick="setRevision('全体を明るく、清潔感のある自然光の印象にしてください。')">もっと明るく</button></div><label>画像の追加希望</label><textarea id="rev"></textarea><div class="actions"><button class="btn" onclick="generateCandidates()">方向性の違うAI画像を3候補つくる</button></div><p class="${imageStatus.startsWith('エラー')?'error':'muted'}">${esc(imageStatus)}</p>${candidateHtml}<div class="uploadBox" style="margin-top:18px"><h4 class="sectionTitle">手持ちの画像を使う</h4><p class="helper">サロンで撮影した写真などを背景画像として使用できます。</p><input id="uploadImage" type="file" accept="image/*" onchange="handleUpload(event)"></div></div>${outputs.includes('image')?`<div class="controlBox" style="text-align:left"><h4 class="sectionTitle">Instagram画像の文字</h4><p class="helper">プレビュー上の文字を直接ドラッグして、好きな位置へ移動できます。</p><label>文字表示</label><select id="instaMode" onchange="setInstaMode(this.value)"><option value="none" ${instaTextMode==='none'?'selected':''}>文字なし</option><option value="title" ${instaTextMode==='title'?'selected':''}>タイトルのみ</option><option value="titleGift" ${instaTextMode==='titleGift'?'selected':''}>タイトル＋サービス</option></select><label>タイトル（改行可）</label><textarea id="overlayTitle">${esc(overlayTitle)}</textarea><label>サービス・補足（改行可）</label><textarea id="overlayGift">${esc(overlayGift)}</textarea><label>下部の案内（改行可）</label><textarea id="overlayFooter">${esc(overlayFooter)}</textarea>
+`:''}<p class="helper">今回は方向性を変えた3案です。使いたい画像をクリックしてください。</p><div class="candidateGrid">${imageCandidates.map((src,i)=>`<div class="candidate ${imageSrc===src?'active':''}" onclick="chooseImageCandidate(${i})"><img src="${src}"><div style="text-align:center;margin-top:6px">${imageCandidateLabels[i]||labels[i]||`候補 ${i+1}`}</div></div>`).join('')}</div>`:'';$('result').innerHTML=`<div class="instaEditorRoot" style="text-align:center">${instaPreviewMarkup()}<div class="controlBox"><h4 class="sectionTitle">画像を選ぶ</h4><p class="helper">AIは低画質で「人物・施術」「サロン空間」「イメージビジュアル」の3方向を作ります。</p><div class="quick"><button onclick="setRevision('施術を受けている大人女性を主役にしてください。施術者の手元も自然に見せてください。')">施術シーン</button><button onclick="setRevision('より上質で高級感のあるサロン空間にしてください。')">もっと高級感</button><button onclick="setRevision('全体を明るく、清潔感のある自然光の印象にしてください。')">もっと明るく</button></div><label>画像の追加希望</label><textarea id="rev"></textarea><div class="actions"><button class="btn" onclick="generateCandidates()">方向性の違うAI画像を3候補つくる</button></div><p class="${imageStatus.startsWith('エラー')?'error':'muted'}">${esc(imageStatus)}</p>${candidateHtml}<div class="uploadBox" style="margin-top:18px"><h4 class="sectionTitle">手持ちの画像を使う</h4><p class="helper">サロンで撮影した写真などを背景画像として使用できます。</p><input id="uploadImage" type="file" accept="image/*" onchange="handleUpload(event)"></div></div>${outputs.includes('image')?`<div class="controlBox" style="text-align:left"><h4 class="sectionTitle">Instagram画像の文字</h4><p class="helper">プレビュー上の文字を直接ドラッグして、好きな位置へ移動できます。</p><label>文字表示</label><select id="instaMode" onchange="setInstaMode(this.value)"><option value="none" ${instagramEditor.mode==='none'?'selected':''}>文字なし</option><option value="title" ${instagramEditor.mode==='title'?'selected':''}>タイトルのみ</option><option value="titleGift" ${instagramEditor.mode==='titleGift'?'selected':''}>タイトル＋サービス</option></select><label>タイトル（改行可）</label><textarea id="overlayTitle" oninput="updateInstaText()">${esc(instagramEditor.blocks.title.text)}</textarea><label>サービス・補足（改行可）</label><textarea id="overlayGift" oninput="updateInstaText()">${esc(instagramEditor.blocks.gift.text)}</textarea><label>下部の案内（改行可）</label><textarea id="overlayFooter" oninput="updateInstaText()">${esc(instagramEditor.blocks.footer.text)}</textarea>
   <div class="controlGrid">
   <div class="controlItem">
     <label>タイトルサイズ</label>
     <div class="seg">
-      ${['small','medium','large'].map(v=>`<button class="${instaTitleFont===v?'active':''}" onclick="setInstaTitleFont('${v}')">${v==='small'?'小':v==='medium'?'標準':'大'}</button>`).join('')}
+      ${['small','medium','large'].map(v=>`<button class="${instagramEditor.blocks.title.size===v?'active':''}" onclick="setInstaTitleFont('${v}')">${v==='small'?'小':v==='medium'?'標準':'大'}</button>`).join('')}
     </div>
   </div>
 
   <div class="controlItem">
     <label>サービスサイズ</label>
     <div class="seg">
-      ${['small','medium','large'].map(v=>`<button class="${instaGiftFont===v?'active':''}" onclick="setInstaGiftFont('${v}')">${v==='small'?'小':v==='medium'?'標準':'大'}</button>`).join('')}
+      ${['small','medium','large'].map(v=>`<button class="${instagramEditor.blocks.gift.size===v?'active':''}" onclick="setInstaGiftFont('${v}')">${v==='small'?'小':v==='medium'?'標準':'大'}</button>`).join('')}
     </div>
   </div>
 
   <div class="controlItem">
     <label>期間・条件サイズ</label>
     <div class="seg">
-      ${['small','medium','large'].map(v=>`<button class="${instaFooterFont===v?'active':''}" onclick="setInstaFooterFont('${v}')">${v==='small'?'小':v==='medium'?'標準':'大'}</button>`).join('')}
+      ${['small','medium','large'].map(v=>`<button class="${instagramEditor.blocks.footer.size===v?'active':''}" onclick="setInstaFooterFont('${v}')">${v==='small'?'小':v==='medium'?'標準':'大'}</button>`).join('')}
     </div>
   </div>
 </div>
-  <label>文字揃え</label><div class="seg">${['left','center','right'].map(v=>`<button class="${instaAlign===v?'active':''}" onclick="setInstaAlign('${v}')">${v==='left'?'左':v==='center'?'中央':'右'}</button>`).join('')}</div><div class="actions"><button class="btn" onclick="saveImageText()">文字を反映・保存</button><button class="btn btn2" onclick="downloadInsta()">Instagram画像を保存</button></div></div>`:''}</div>`}}
+  <label>文字揃え</label><div class="seg">${['left','center','right'].map(v=>`<button class="${instagramEditor.align===v?'active':''}" onclick="setInstaAlign('${v}')">${v==='left'?'左':v==='center'?'中央':'右'}</button>`).join('')}</div><div class="actions"><button class="btn" onclick="saveImageText()">文字を反映・保存</button><button class="btn btn2" onclick="downloadInsta()">Instagram画像を保存</button></div></div>`:''}</div>`;const root=document.querySelector('.instaEditorRoot');root.editorOwner=selected;root.editorPromo=currentPromoId;requestAnimationFrame(layoutInstaPreview);}}
 async function saveVersion(type,title,body,hashtags=[]){const{data:cur}=await sb.from('promotion_contents').select('id,version').eq('promotion_id',currentPromoId).eq('content_type',type).eq('is_current',true).order('version',{ascending:false}).limit(1).maybeSingle();if(cur)await sb.from('promotion_contents').update({is_current:false}).eq('id',cur.id);const{error}=await sb.from('promotion_contents').insert({promotion_id:currentPromoId,content_type:type,title,body,hashtags:hashtags||[],version:(cur?.version||0)+1,is_current:true});if(error)throw error;$('saveMsg').textContent='保存しました。';$('saveMsg').className='ok'}
 
 window.saveLineEdit=async()=>{contents.line={title:$('lineTitle').value,body:$('lineBody').value};await saveVersion('line',contents.line.title,contents.line.body,[]);render()};
@@ -918,7 +876,7 @@ layout:{
   footerFont:popFooterFont,
   align:popAlign,
   font:popFont
-}};if(isFourPop()){render();fitFourPop();captureFourPopPositions();}await saveVersion('pop',contents.pop.headline,JSON.stringify(contents.pop),[]);overlayTitle=contents.pop.headline;overlayGift=contents.pop.gift_display||selected.gift;render()};
+}};if(isFourPop()){render();fitFourPop();captureFourPopPositions();}await saveVersion('pop',contents.pop.headline,JSON.stringify(contents.pop),[]);render()};
 window.setRevision=t=>{const e=$('rev');if(e)e.value=t};
 async function generateOneImage(revision,variant){const j=await api('/api/image',{prompt:contents.image?.prompt_ja||`${selected.title} ${selected.gift}`,revision,variant});return j.image_base64?`data:image/png;base64,${j.image_base64}`:j.image_url}
 window.generateCandidates=async()=>{
@@ -992,31 +950,111 @@ i===1 ? 'サロン空間（人物・施術の代替案）' :
 
   render();
 };
+function createInstagramEditor(texts={}){
+ return {version:1,mode:'titleGift',align:'center',background:{type:'legacyGradient'},blocks:{
+  title:{text:texts.title||'',x:50,y:28,size:'medium',font:'serif',weight:600},
+  gift:{text:texts.gift||'',x:50,y:58,size:'medium',font:'sans',weight:400},
+  footer:{text:texts.footer||'',x:50,y:84,size:'medium',font:'sans',weight:400}
+ }};
+}
+function resetInstagramEditor(){
+ instagramEditor=createInstagramEditor({title:contents.pop?.headline||selected?.title,gift:contents.pop?.gift_display||selected?.gift,footer:`${fmtDate($('start').value)}〜${fmtDate($('end').value)} ／ ${$('conditions').value}`});
+ imageRecordId=null;imageRecordType=null;
+}
+function parseImageMetadata(value){
+ try{const data=typeof value==='string'?JSON.parse(value):value;return data&&typeof data==='object'&&!Array.isArray(data)?data:{};}catch{return {};}
+}
+function restoreInstagramEditor(meta){
+ const saved=meta.instagramEditor?.version===1?meta.instagramEditor:null;
+ const coordinate=(value,fallback)=>{const n=typeof value==='number'?value:typeof value==='string'&&value.trim()?Number(value):NaN;return Number.isFinite(n)?clamp(n,0,100):fallback;};
+ const validSize=value=>['small','medium','large'].includes(value);
+ const caps={title:'Title',gift:'Gift',footer:'Footer'};
+ for(const [key,block] of Object.entries(instagramEditor.blocks)){
+  const source=saved?.blocks?.[key]||{},cap=caps[key];
+  const text=source.text??meta['overlay'+cap];if(typeof text==='string')block.text=text;
+  block.x=coordinate(source.x??meta['insta'+cap+'X'],block.x);block.y=coordinate(source.y??meta['insta'+cap+'Y'],block.y);
+  const size=source.size??meta['insta'+cap+'Font'];if(validSize(size))block.size=size;
+  if(['serif','sans'].includes(source.font))block.font=source.font;
+  if([400,600,700].includes(source.weight))block.weight=source.weight;
+ }
+ const mode=saved?.mode??meta.instaTextMode,align=saved?.align??meta.instaAlign;
+ if(['none','title','titleGift'].includes(mode))instagramEditor.mode=mode;
+ if(['left','center','right'].includes(align))instagramEditor.align=align;
+ if(typeof meta.prompt==='string'&&meta.prompt)contents.image={...(contents.image||{}),prompt_ja:meta.prompt};
+}
+function imageMetadata(existing={}){
+ captureInstaDraft();
+ return {...existing,prompt:contents.image?.prompt_ja||'',instagramEditor:JSON.parse(JSON.stringify(instagramEditor))};
+}
+function captureInstaDraft(){
+ const root=document.querySelector('.instaEditorRoot');if(!root||root.editorOwner!==selected||root.editorPromo!==currentPromoId)return;
+ for(const [id,key] of [['overlayTitle','title'],['overlayGift','gift'],['overlayFooter','footer']])if($(id))instagramEditor.blocks[key].text=$(id).value;
+}
+function instaPreviewMarkup(){
+ if(!imageSrc)return '<p class="muted">まだ画像は選ばれていません。</p>';
+ const editor=instagramEditor,visible=editor.mode==='none'?[]:editor.mode==='title'?['title','footer']:['title','gift','footer'];
+ const classes={title:'instaTitle',gift:'instaGift',footer:'instaFoot'};
+ const blocks=visible.filter(key=>key!=='footer'||editor.blocks.footer.text).map(key=>{const b=editor.blocks[key];return `<div class="instaText" data-insta-block="${key}" onpointerdown="startDrag(event,'insta${key[0].toUpperCase()+key.slice(1)}')" style="${textPosStyle(b.x,b.y,editor.align)}"><div class="${classes[key]}">${esc(b.text)}</div></div>`}).join('');
+ return `<div class="instaFrame"><img src="${esc(imageSrc)}">${editor.mode==='none'?'':'<div class="instaVeil"></div>'}<div class="instaOverlay">${blocks}</div></div>`;
+}
+function layoutInstaPreview(){
+ const frame=document.querySelector('.instaFrame');if(!frame||!frame.clientWidth)return;
+ const w=frame.clientWidth,h=frame.clientHeight,scale=w/620,image=frame.querySelector('img');
+ if(image&&!image.complete&&!image.instaLoadBound){image.instaLoadBound=true;image.addEventListener('load',layoutInstaPreview,{once:true});}
+ frame.style.borderRadius=14*scale+'px';
+ const overlay=frame.querySelector('.instaOverlay');if(overlay)overlay.style.textShadow=`0 ${2*scale}px ${10*scale}px #0008`;
+ // Explicit cover geometry also works for html2canvas and non-square uploads.
+ if(image?.naturalWidth){const ratio=Math.max(w/image.naturalWidth,h/image.naturalHeight),iw=image.naturalWidth*ratio,ih=image.naturalHeight*ratio;Object.assign(image.style,{width:iw+'px',height:ih+'px',left:(w-iw)/2+'px',top:(h-ih)/2+'px'});}
+ const sizes={title:{small:46,medium:60,large:72},gift:{small:30,medium:38,large:48},footer:{small:20,medium:25,large:32}};
+ const nodes=[...frame.querySelectorAll('[data-insta-block]')].sort((a,b)=>instagramEditor.blocks[a.dataset.instaBlock].y-instagramEditor.blocks[b.dataset.instaBlock].y);
+ let fits=true;
+ nodes.forEach((el,i)=>{
+  const b=instagramEditor.blocks[el.dataset.instaBlock],text=el.firstElementChild;
+  const cx=clamp(b.x,4,96),cy=clamp(b.y,4,96),previous=i?instagramEditor.blocks[nodes[i-1].dataset.instaBlock].y:0,next=i+1<nodes.length?instagramEditor.blocks[nodes[i+1].dataset.instaBlock].y:100;
+  const top=i?(previous+cy)/2:2,bottom=i+1<nodes.length?(cy+next)/2:98;
+  el.style.left=cx+'%';el.style.top=cy+'%';el.style.width=Math.max(4,Math.min(84,2*Math.min(cx-2,98-cx)))+'%';el.style.maxWidth=el.style.width;
+  Object.assign(text.style,{fontFamily:b.font==='serif'?'serif':'-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic",Meiryo,sans-serif',fontWeight:String(b.weight),whiteSpace:'pre-wrap',overflowWrap:'anywhere',marginTop:el.dataset.instaBlock==='title'?'0':10*scale+'px'});
+  let size=sizes[el.dataset.instaBlock][b.size]*scale;const minimum=8*scale,available=Math.max(0,(bottom-top)/100*h-8*scale);
+  text.style.fontSize=size+'px';
+  while((el.offsetHeight>available||el.scrollWidth>el.clientWidth+1)&&size>minimum){size=Math.max(minimum,size-.25*scale);text.style.fontSize=size+'px';}
+  el.style.top=clamp(cy/100*h,top/100*h+el.offsetHeight/2,bottom/100*h-el.offsetHeight/2)/h*100+'%';
+  if(el.offsetHeight>available+1||el.scrollWidth>el.clientWidth+1)fits=false;
+ });
+ return fits;
+}
+function refreshInstaPreview(){
+ const frame=document.querySelector('.instaFrame');if(frame)frame.outerHTML=instaPreviewMarkup();
+ layoutInstaPreview();
+ const controls={setInstaTitleFont:instagramEditor.blocks.title.size,setInstaGiftFont:instagramEditor.blocks.gift.size,setInstaFooterFont:instagramEditor.blocks.footer.size,setInstaAlign:instagramEditor.align};
+ for(const [handler,value] of Object.entries(controls))document.querySelectorAll(`.instaEditorRoot button[onclick^="${handler}("]`).forEach(button=>button.classList.toggle('active',button.getAttribute('onclick')===`${handler}('${value}')`));
+}
+window.updateInstaText=()=>{captureInstaDraft();refreshInstaPreview();};
 function blobExtension(t){return t==='image/jpeg'?'jpg':t==='image/webp'?'webp':'png'}
-async function persistImage(src){if(!currentPromoId||!src)return;let blob;if(src.startsWith('data:'))blob=await(await fetch(src)).blob();else blob=await(await fetch(src)).blob();const imageType=outputs.includes('image')?'instagram':'pop';const{data:old}=await sb.from('promotion_images').select('id,version').eq('promotion_id',currentPromoId).eq('image_type',imageType).eq('is_current',true).order('version',{ascending:false}).limit(1).maybeSingle();if(old)await sb.from('promotion_images').update({is_current:false}).eq('id',old.id);const v=(old?.version||0)+1,ext=blobExtension(blob.type),path=`${salon.id}/${currentPromoId}/${imageType}-v${v}.${ext}`;const{error:up}=await sb.storage.from('promotion-images').upload(path,blob,{contentType:blob.type||'image/png',upsert:false});if(up)throw up;const meta={prompt:contents.image?.prompt_ja||'',overlayTitle,overlayGift,overlayFooter,instaTextMode,instaTitleX:Math.round(instaTitleX*10)/10,
-instaTitleY:Math.round(instaTitleY*10)/10,
-instaGiftX:Math.round(instaGiftX*10)/10,
-instaGiftY:Math.round(instaGiftY*10)/10,
-instaFooterX:Math.round(instaFooterX*10)/10,
-instaFooterY:Math.round(instaFooterY*10)/10,instaTitleFont,
-instaGiftFont,
-instaFooterFont,instaAlign};const{error:ie}=await sb.from('promotion_images').insert({promotion_id:currentPromoId,image_type:imageType,storage_path:path,generation_instruction:JSON.stringify(meta),version:v,is_current:true});if(ie)throw ie}
+async function persistImage(src){if(!currentPromoId||!src)return;let blob;if(src.startsWith('data:'))blob=await(await fetch(src)).blob();else blob=await(await fetch(src)).blob();const imageType=outputs.includes('image')?'instagram':'pop';const{data:old}=await sb.from('promotion_images').select('id,version').eq('promotion_id',currentPromoId).eq('image_type',imageType).eq('is_current',true).order('version',{ascending:false}).limit(1).maybeSingle();if(old)await sb.from('promotion_images').update({is_current:false}).eq('id',old.id);const v=(old?.version||0)+1,ext=blobExtension(blob.type),path=`${salon.id}/${currentPromoId}/${imageType}-v${v}.${ext}`;const{error:up}=await sb.storage.from('promotion-images').upload(path,blob,{contentType:blob.type||'image/png',upsert:false});if(up)throw up;const meta=imageMetadata();const{data:record,error:ie}=await sb.from('promotion_images').insert({promotion_id:currentPromoId,image_type:imageType,storage_path:path,generation_instruction:JSON.stringify(meta),version:v,is_current:true}).select('id').single();if(ie)throw ie;imageRecordId=record.id;imageRecordType=imageType}
 window.chooseImageCandidate=async i=>{imageSrc=imageCandidates[i];imageStatus='選んだ画像を保存しています…';render();try{await persistImage(imageSrc);imageStatus='この画像を使用します。保存しました。'}catch(e){imageStatus=`エラー：${e.message}`}render()};
 window.handleUpload=e=>{const file=e.target.files?.[0];if(!file)return;const reader=new FileReader();reader.onload=async()=>{imageSrc=reader.result;imageCandidates=[];imageStatus='アップロード画像を保存しています…';render();try{await persistImage(imageSrc);imageStatus='アップロード画像を使用します。保存しました。'}catch(err){imageStatus=`エラー：${err.message}`}render()};reader.readAsDataURL(file)};
-window.setInstaMode=v=>{instaTextMode=v;render()};window.setInstaAlign=v=>{instaAlign=v;render()};
-window.setInstaTitleFont=v=>{instaTitleFont=v;render()};
-window.setInstaGiftFont=v=>{instaGiftFont=v;render()};
-window.setInstaFooterFont=v=>{instaFooterFont=v;render()};
-window.saveImageText=async()=>{overlayTitle=$('overlayTitle')?.value||'';overlayGift=$('overlayGift')?.value||'';overlayFooter=$('overlayFooter')?.value||'';instaTextMode=$('instaMode')?.value||instaTextMode;try{const imageType=outputs.includes('image')?'instagram':'pop';const{data:cur}=await sb.from('promotion_images').select('id').eq('promotion_id',currentPromoId).eq('image_type',imageType).eq('is_current',true).order('version',{ascending:false}).limit(1).maybeSingle();if(cur){const meta={prompt:contents.image?.prompt_ja||'',overlayTitle,overlayGift,overlayFooter,instaTextMode,instaTitleX:Math.round(instaTitleX*10)/10,
-instaTitleY:Math.round(instaTitleY*10)/10,
-instaGiftX:Math.round(instaGiftX*10)/10,
-instaGiftY:Math.round(instaGiftY*10)/10,
-instaFooterX:Math.round(instaFooterX*10)/10,
-instaFooterY:Math.round(instaFooterY*10)/10,
-instaTitleFont,
-instaGiftFont,
-instaFooterFont,
-instaAlign};const{error}=await sb.from('promotion_images').update({generation_instruction:JSON.stringify(meta)}).eq('id',cur.id);if(error)throw error}$('saveMsg').textContent='画像の文字設定を保存しました。';$('saveMsg').className='ok';render()}catch(e){$('saveMsg').textContent=e.message;$('saveMsg').className='error'}};
+window.setInstaMode=value=>{captureInstaDraft();instagramEditor.mode=value;refreshInstaPreview();};
+window.setInstaAlign=value=>{captureInstaDraft();instagramEditor.align=value;refreshInstaPreview();};
+function setInstaSize(block,value){captureInstaDraft();instagramEditor.blocks[block].size=value;refreshInstaPreview();}
+window.setInstaTitleFont=value=>setInstaSize('title',value);
+window.setInstaGiftFont=value=>setInstaSize('gift',value);
+window.setInstaFooterFont=value=>setInstaSize('footer',value);
+window.saveImageText=async()=>{
+ captureInstaDraft();
+ try{
+  if(!currentPromoId||!imageSrc)throw Error('先に画像を選択・保存してください。');
+  let query=sb.from('promotion_images').select('id,generation_instruction').eq('promotion_id',currentPromoId).eq('is_current',true);
+  query=imageRecordId?query.eq('id',imageRecordId):query.eq('image_type',imageRecordType||(outputs.includes('image')?'instagram':'pop'));
+  const{data:cur,error:readError}=await query.order('version',{ascending:false}).limit(1).maybeSingle();
+  if(readError)throw readError;
+  if(!cur)throw Error('保存対象の画像がありません。先に画像を選択・保存してください。');
+  const meta=imageMetadata(parseImageMetadata(cur.generation_instruction));
+  const{data:updated,error}=await sb.from('promotion_images').update({generation_instruction:JSON.stringify(meta)}).eq('id',cur.id).eq('promotion_id',currentPromoId).select('id').single();
+  if(error)throw error;if(!updated)throw Error('画像の文字設定を保存できませんでした。');
+  imageRecordId=cur.id;
+  $('saveMsg').textContent='画像の文字設定を保存しました。';$('saveMsg').className='ok';refreshInstaPreview();
+ }catch(e){$('saveMsg').textContent=e.message;$('saveMsg').className='error';}
+};
 window.openPromo=async id=>{const{data:p,error}=await sb.from('promotions').select('*').eq('id',id).single();if(error)return alert(error.message);currentPromoId=id;selected=p.selected_plan||{title:p.theme,gift:p.gift_request,catch:''};outputs=p.requested_outputs||[];$('requiredContent').value=typeof p.selected_plan?.input_details?.required_content==='string'?p.selected_plan.input_details.required_content:'';$('benefits').value=typeof p.selected_plan?.input_details?.benefits==='string'?p.selected_plan.input_details.benefits:'';$('start').value=p.start_date;$('end').value=p.end_date;$('theme').value=p.theme||'';const goalOptions=Array.from($('promotionGoal').options).map(o=>o.value);const savedGoal=p.sales_goal||'通常の来店を促したい';$('promotionGoal').value=goalOptions.includes(savedGoal)?savedGoal:'other';$('promotionGoalOther').value=goalOptions.includes(savedGoal)?'':savedGoal;$('promotionGoalOther').style.display=$('promotionGoal').value==='other'?'block':'none';$('gift').value=p.gift_request||'';$('target').value=p.target||'';$('conditions').value=p.conditions||'';contents={};const{data:cs}=await sb.from('promotion_contents').select('*').eq('promotion_id',id).eq('is_current',true);for(const c of cs||[]){if(c.content_type==='pop'){try{contents.pop=JSON.parse(c.body)}catch{contents.pop={headline:c.title||'',subheadline:'',body:c.body,footer:''}}}if(c.content_type==='line')contents.line={title:c.title||'',body:c.body};if(c.content_type==='instagram')contents.instagram={caption:c.body,hashtags:c.hashtags||[]}}if((outputs.includes('image')||outputs.includes('pop'))&&!contents.image)contents.image={prompt_ja:`${selected.title} ${selected.gift} 女性向けエステサロンの上品な施術イメージ`};popTitleX=Number(contents.pop?.layout?.titleX ?? contents.pop?.layout?.x)||50;
 popTitleY=Number(contents.pop?.layout?.titleY ?? contents.pop?.layout?.y)||(contents.pop?.design_version===2?17:28);
 popSubX=Number(contents.pop?.layout?.subX)||50;
@@ -1029,16 +1067,11 @@ popGiftFont=contents.pop?.layout?.giftFont||contents.pop?.layout?.giftfont||'med
 popFooterY=Number(contents.pop?.layout?.footerY)||(contents.pop?.design_version===2?87:82);
 if(contents.pop?.design_version===2){popTextColor=contents.pop.layout?.textColor||'dark';popVeilTone=contents.pop.layout?.veilTone||'light';popVeilStrength=contents.pop.layout?.veilStrength||'medium';}
 popFooterFont=contents.pop?.layout?.footerFont||'medium';
-overlayTitle=contents.pop?.headline||selected.title;overlayGift=contents.pop?.gift_display||selected.gift;overlayFooter=`${fmtDate($('start').value)}〜${fmtDate($('end').value)} ／ ${$('conditions').value}`;instaTextMode='titleGift';
-instaTitleX=50;instaTitleY=28;
-instaGiftX=50;instaGiftY=58;
-instaFooterX=50;instaFooterY=84;
-instaAlign='center';imageSrc='';imageCandidates=[];imageStatus='';const preferredType=outputs.includes('image')?'instagram':'pop';let{data:im}=await sb.from('promotion_images').select('*').eq('promotion_id',id).eq('image_type',preferredType).eq('is_current',true).order('version',{ascending:false}).limit(1).maybeSingle();if(!im){const altType=preferredType==='instagram'?'pop':'instagram',alt=await sb.from('promotion_images').select('*').eq('promotion_id',id).eq('image_type',altType).eq('is_current',true).order('version',{ascending:false}).limit(1).maybeSingle();im=alt.data}if(im){const{data:signed}=await sb.storage.from('promotion-images').createSignedUrl(im.storage_path,3600);if(signed?.signedUrl)imageSrc=signed.signedUrl;try{const meta=JSON.parse(im.generation_instruction||'{}');overlayTitle=meta.overlayTitle??overlayTitle;overlayGift=meta.overlayGift??overlayGift;overlayFooter=meta.overlayFooter??overlayFooter;instaTextMode=meta.instaTextMode||instaTextMode;instaTitleX=Number(meta.instaTitleX)||instaTitleX;
-instaTitleY=Number(meta.instaTitleY)||instaTitleY;
-instaGiftX=Number(meta.instaGiftX)||instaGiftX;
-instaGiftY=Number(meta.instaGiftY)||instaGiftY;
-instaFooterX=Number(meta.instaFooterX)||instaFooterX;
-instaFooterY=Number(meta.instaFooterY)||instaFooterY;instaTitleFont=meta.instaTitleFont||'medium';instaGiftFont=meta.instaGiftFont||'medium';instaFooterFont=meta.instaFooterFont||'medium';instaAlign=meta.instaAlign||instaAlign}catch{}}restoreFourPopLayout();$('rtitle').textContent=selected.title+'（再編集）';buildTabs();show('results')};
+
+
+
+
+resetInstagramEditor();imageSrc='';imageCandidates=[];imageStatus='';const preferredType=outputs.includes('image')?'instagram':'pop';let{data:im}=await sb.from('promotion_images').select('*').eq('promotion_id',id).eq('image_type',preferredType).eq('is_current',true).order('version',{ascending:false}).limit(1).maybeSingle();if(!im){const altType=preferredType==='instagram'?'pop':'instagram',alt=await sb.from('promotion_images').select('*').eq('promotion_id',id).eq('image_type',altType).eq('is_current',true).order('version',{ascending:false}).limit(1).maybeSingle();im=alt.data}if(im){const{data:signed}=await sb.storage.from('promotion-images').createSignedUrl(im.storage_path,3600);if(signed?.signedUrl)imageSrc=signed.signedUrl;imageRecordId=im.id;imageRecordType=im.image_type;restoreInstagramEditor(parseImageMetadata(im.generation_instruction));}restoreFourPopLayout();$('rtitle').textContent=selected.title+'（再編集）';buildTabs();show('results')};
 window.deletePromo=async id=>{if(!confirm('この販促データを削除しますか？\n文章・保存画像も削除されます。'))return;try{const{data:imgs}=await sb.from('promotion_images').select('storage_path').eq('promotion_id',id),paths=(imgs||[]).map(x=>x.storage_path).filter(Boolean);if(paths.length){const{error:se}=await sb.storage.from('promotion-images').remove(paths);if(se)throw se}let r=await sb.from('promotion_images').delete().eq('promotion_id',id);if(r.error)throw r.error;r=await sb.from('promotion_contents').delete().eq('promotion_id',id);if(r.error)throw r.error;r=await sb.from('promotions').delete().eq('id',id);if(r.error)throw r.error;await hist()}catch(e){alert('削除できませんでした：'+e.message)}};
 function drawCover(ctx,im,w,h){const s=Math.max(w/im.width,h/im.height),sw=im.width*s,sh=im.height*s;ctx.drawImage(im,(w-sw)/2,(h-sh)/2,sw,sh)}
 function wrapLines(ctx,text,maxWidth){const all=[];for(const para of String(text||'').split('\n')){let line='';for(const ch of[...para]){if(ctx.measureText(line+ch).width>maxWidth&&line){all.push(line);line=ch}else line+=ch}all.push(line)}return all}
@@ -1080,88 +1113,20 @@ window.downloadPop=async()=>{
     alert('POP画像を保存できませんでした。');
   }
 };
-window.downloadInsta=async()=>{if(!imageSrc)return alert('先に画像を選んでください。');overlayTitle=$('overlayTitle')?.value??overlayTitle;overlayGift=$('overlayGift')?.value??overlayGift;overlayFooter=$('overlayFooter')?.value??overlayFooter;instaTextMode=$('instaMode')?.value??instaTextMode;const w=1200,h=1200,c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d'),im=await loadCanvasImage(imageSrc);drawCover(ctx,im,w,h);if(instaTextMode!=='none'){const grad=ctx.createLinearGradient(0,0,0,h);grad.addColorStop(0,'rgba(20,18,16,.04)');grad.addColorStop(.48,'rgba(20,18,16,.12)');grad.addColorStop(1,'rgba(20,18,16,.72)');ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);const align=instaAlign,maxWidth=1008;
-
-ctx.fillStyle='#fff';
-ctx.shadowColor='rgba(0,0,0,.45)';
-ctx.shadowBlur=16;
-
-/* タイトル */
-const titleCenterX=instaTitleX/100*w;
-const titleLeft=titleCenterX-maxWidth/2;
-const titleRight=titleCenterX+maxWidth/2;
-const titleX=align==='left'?titleLeft:align==='right'?titleRight:titleCenterX;
-
-ctx.font='600 64px serif';
-const titleLines=wrapLines(ctx,overlayTitle,maxWidth);
-const titleH=titleLines.length*78;
-let titleY=instaTitleY/100*h-titleH/2;
-titleY=clamp(titleY,55,h-titleH-55);
-
-drawTextBlock(
-  ctx,
-  overlayTitle,
-  titleX,
-  titleY,
-  64,
-  maxWidth,
-  78,
-  align,
-  'serif',
-  '600'
-);
-
-/* サービス・キャッチ */
-if(instaTextMode==='titleGift' && overlayGift){
-  const giftCenterX=instaGiftX/100*w;
-  const giftLeft=giftCenterX-maxWidth/2;
-  const giftRight=giftCenterX+maxWidth/2;
-  const giftX=align==='left'?giftLeft:align==='right'?giftRight:giftCenterX;
-
-  ctx.font='400 34px sans-serif';
-  const giftLines=wrapLines(ctx,overlayGift,maxWidth);
-  const giftH=giftLines.length*48;
-  let giftY=instaGiftY/100*h-giftH/2;
-  giftY=clamp(giftY,55,h-giftH-55);
-
-  drawTextBlock(
-    ctx,
-    overlayGift,
-    giftX,
-    giftY,
-    34,
-    maxWidth,
-    48,
-    align
-  );
-}
-
-/* 期間・案内 */
-if(overlayFooter){
-  const footerCenterX=instaFooterX/100*w;
-  const footerLeft=footerCenterX-maxWidth/2;
-  const footerRight=footerCenterX+maxWidth/2;
-  const footerX=align==='left'?footerLeft:align==='right'?footerRight:footerCenterX;
-
-  ctx.font='400 26px sans-serif';
-  const footerLines=wrapLines(ctx,overlayFooter,maxWidth);
-  const footerH=footerLines.length*38;
-  let footerY=instaFooterY/100*h-footerH/2;
-  footerY=clamp(footerY,55,h-footerH-55);
-
-  drawTextBlock(
-    ctx,
-    overlayFooter,
-    footerX,
-    footerY,
-    26,
-    maxWidth,
-    38,
-    align
-  );
-}
-
-ctx.shadowBlur=0;}const a=document.createElement('a');a.download=`${selected.title||'instagram'}.png`;a.href=c.toDataURL('image/png');a.click()};
+window.downloadInsta=async()=>{
+ if(!imageSrc)return alert('先に画像を選んでください。');
+ try{
+  captureInstaDraft();refreshInstaPreview();
+  const frame=document.querySelector('.instaFrame');if(!frame)throw Error('Instagram画像のプレビューがありません。');
+  await Promise.all([...frame.querySelectorAll('img')].map(img=>img.decode()));
+  if(document.fonts?.ready)await document.fonts.ready;
+  await new Promise(resolve=>requestAnimationFrame(resolve));
+  if(layoutInstaPreview()===false)throw Error('文字が収まりません。文章やサイズ・位置を調整してください。');
+  const bounds=frame.getBoundingClientRect();
+  const canvas=await html2canvas(frame,{width:bounds.width,height:bounds.height,scale:1200/bounds.width,useCORS:true,allowTaint:false,backgroundColor:null,logging:false});
+  const a=document.createElement('a');a.download=`${selected.title||'instagram'}.png`;a.href=canvas.toDataURL('image/png');a.click();
+ }catch(e){alert('Instagram画像を保存できませんでした：'+e.message);}
+};
 $('done').onclick=async()=>{await hist();show('home')};
 async function hist(){const{data,error}=await sb.from('promotions').select('*').eq('salon_id',salon.id).order('created_at',{ascending:false}).limit(30);if(error){$('history').textContent=error.message;return}$('history').innerHTML=!data?.length?'まだありません。':data.map(x=>`<div class="item"><div class="itemMain" onclick="openPromo('${x.id}')"><b>${esc(x.selected_plan?.title||x.theme)}</b><div class="muted">${x.start_date} ～ ${x.end_date} ／ クリックして確認・修正</div></div><div class="itemActions"><button class="btn btn2 smallBtn" onclick="openPromo('${x.id}')">開く</button><button class="btn btnDanger smallBtn" onclick="deletePromo('${x.id}')">削除</button></div></div>`).join('')}
 sb.auth.onAuthStateChange(event=>{if(event==='PASSWORD_RECOVERY')show('newPassword')});if(location.search.includes('password-recovery=1'))show('newPassword');else boot();
