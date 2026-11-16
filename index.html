@@ -147,7 +147,15 @@ justify-content:flex-start;
 .popFour .popOffer:last-child{border-bottom:0}
 .popFour .popGift,.popFour .popH{font-family:"Noto Serif CJK JP","Yu Mincho","Hiragino Mincho ProN",serif}
 .popFour .popH{letter-spacing:.02em}
-.popFontRow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:12px 0}.popFontRow label{margin:0}.popFontRow>div{display:flex;align-items:center;gap:6px}.popFontRow input{width:80px;padding:8px}.popFontRow button{min-width:36px;min-height:36px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.popSizeRow{padding:12px 0;border-bottom:1px solid var(--line)}
+.popSizeRow>label{margin:0 0 8px}
+.popSizeControls{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.popEditor .popSizeControls .seg{display:flex;gap:4px;margin:0;flex-wrap:nowrap}
+.popEditor .popSizeControls .seg button{min-width:40px;padding:6px 8px}
+.popPercentControls{display:flex;align-items:center;gap:4px}
+.popPercentControls input{width:60px;padding:8px 4px;text-align:center}
+.popPercentControls button{width:44px;min-height:44px;border:1px solid var(--line);border-radius:8px;background:#fff;touch-action:none;user-select:none;-webkit-touch-callout:none}
+.popSizeRows>.btn{margin-top:12px}
 .popTextDesignControls{margin:14px 0}
 .popFour.text-elegant .popH,.popFour.text-elegant .popSub,.popFour.text-elegant .popGift{font-family:var(--pop-serif);font-weight:600}
 .popFour.text-elegant .popH{letter-spacing:.07em}
@@ -213,7 +221,7 @@ instaFooterX=50,instaFooterY=84,
 instaAlign='center';overlayTitle='',overlayGift='',overlayFooter='';let dragState=null;
 const $=x=>document.getElementById(x);
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-function show(id){['login','forgot','newPassword','setup','home','form','plansSec','confirm','results'].forEach(x=>$(x).classList.toggle('hide',x!==id));$('logout').classList.toggle('hide',!['setup','home','form','plansSec','confirm','results'].includes(id))}
+function show(id){stopPopScaleHold(true);['login','forgot','newPassword','setup','home','form','plansSec','confirm','results'].forEach(x=>$(x).classList.toggle('hide',x!==id));$('logout').classList.toggle('hide',!['setup','home','form','plansSec','confirm','results'].includes(id))}
 function fmtDate(d){if(!d)return'';const x=new Date(d+'T00:00:00');return`${x.getMonth()+1}月${x.getDate()}日`}
 function clamp(n,min,max){return Math.max(min,Math.min(max,n))}
 window.startDrag=(e,type)=>{const el=e.currentTarget,frame=el.parentElement.parentElement;dragState={type,el,frame};el.classList.add('dragging');el.setPointerCapture?.(e.pointerId);e.preventDefault()};
@@ -327,8 +335,56 @@ function restorePopFontScales(){
 }
 function popFontControls(){
  if(!isModernPop())return '';
- return `<div class="popFineSizes"><h4 class="sectionTitle">％で細かく調整</h4>${Object.entries(POP_FONT_KEYS).map(([key,label])=>`<div class="popFontRow"><label for="popScale-${key}">${label}</label><div><button type="button" aria-label="${label}を1％小さく" onclick="adjustPopScale('${key}',-1)">−</button><input id="popScale-${key}" type="number" min="50" max="150" step="1" value="${Math.round(popScale(key)*100)}" oninput="inputPopScale('${key}',this)" onblur="this.value=Math.round(popScale('${key}')*100)"><span>％</span><button type="button" aria-label="${label}を1％大きく" onclick="adjustPopScale('${key}',1)">＋</button></div></div>`).join('')}<button type="button" class="btn btn2" onclick="resetPopScales()">サイズを初期値に戻す</button></div>`;
+ const labels={title:'タイトル',sub:'サブタイトル',gift:'サービス内容',footer:'期間・条件'};
+ return `<div class="popSizeRows">${Object.entries(labels).map(([key,label])=>`<div class="popSizeRow"><label for="popScale-${key}">${label}</label><div class="popSizeControls"><div class="seg" role="group" aria-label="${label}のサイズ">${['small','medium','large'].map(value=>`<button type="button" class="${Math.abs(popScale(key)-fontScale(value))<.001?'active':''}" data-pop-font-key="${key}" data-pop-font-value="${value}" onclick="setPopPreset('${key}','${value}')">${value==='small'?'小':value==='medium'?'標準':'大'}</button>`).join('')}</div><div class="popPercentControls"><button type="button" aria-label="${label}を1％小さく" onpointerdown="startPopScaleHold(event,'${key}',-1)" onpointerleave="stopPopScaleHold(true)" oncontextmenu="event.preventDefault()" onclick="clickPopScale(event,'${key}',-1)">−</button><input id="popScale-${key}" type="number" min="50" max="150" step="1" value="${Math.round(popScale(key)*100)}" oninput="inputPopScale('${key}',this)" onblur="this.value=Math.round(popScale('${key}')*100)"><span>％</span><button type="button" aria-label="${label}を1％大きく" onpointerdown="startPopScaleHold(event,'${key}',1)" onpointerleave="stopPopScaleHold(true)" oncontextmenu="event.preventDefault()" onclick="clickPopScale(event,'${key}',1)">＋</button></div></div></div>`).join('')}<button type="button" class="btn btn2" onclick="resetPopScales()">サイズを初期値に戻す</button></div>`;
 }
+let popScaleHold=null;
+const popScaleClickBlocks=new WeakSet();
+function stopPopScaleHold(cancel=false){
+ if(!popScaleHold)return;
+ clearTimeout(popScaleHold.timer);
+ if(cancel||popScaleHold.repeated)popScaleClickBlocks.add(popScaleHold.button);
+ popScaleHold=null;
+}
+window.startPopScaleHold=(event,key,delta)=>{
+ if(!event.isPrimary||event.button!==0)return;
+ stopPopScaleHold(true);
+ const button=event.currentTarget;
+ button.focus({preventScroll:true});
+ popScaleClickBlocks.delete(button);
+ const hold={button,key,delta,pointerId:event.pointerId,started:performance.now(),repeated:false,timer:null};
+ popScaleHold=hold;
+ const repeat=()=>{
+  if(popScaleHold!==hold)return;
+  if(!button.isConnected||tab!=='popdesign'||document.hidden){stopPopScaleHold(true);return;}
+  hold.repeated=true;
+  const before=popScale(key);
+  adjustPopScale(key,delta);
+  if(popScale(key)===before||popScale(key)===.5||popScale(key)===1.5){stopPopScaleHold();return;}
+  const elapsed=performance.now()-hold.started;
+  hold.timer=setTimeout(repeat,elapsed<1200?180:elapsed<2400?100:60);
+ };
+ hold.timer=setTimeout(repeat,400);
+};
+window.clickPopScale=(event,key,delta)=>{
+ const button=event.currentTarget;
+ if(event.detail!==0&&popScaleClickBlocks.has(button)){popScaleClickBlocks.delete(button);return;}
+ adjustPopScale(key,delta);
+};
+window.addEventListener('pointerup',()=>stopPopScaleHold(),true);
+window.addEventListener('pointercancel',()=>stopPopScaleHold(true),true);
+window.addEventListener('pointermove',event=>{
+ if(!popScaleHold||event.pointerId!==popScaleHold.pointerId)return;
+ const r=popScaleHold.button.getBoundingClientRect();
+ if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)stopPopScaleHold(true);
+},true);
+window.addEventListener('blur',()=>stopPopScaleHold(true));
+window.addEventListener('pagehide',()=>stopPopScaleHold(true));
+window.addEventListener('scroll',()=>stopPopScaleHold(true),true);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopPopScaleHold(true)});
+document.addEventListener('toggle',event=>{
+ if(popScaleHold&&event.target.tagName==='DETAILS'&&!event.target.open&&event.target.contains(popScaleHold.button))stopPopScaleHold(true);
+},true);
 function refreshPopFontPreview(){
  const frame=document.querySelector('.popPreview');if(!frame||!isModernPop())return;
  // Use unsaved editor text without changing the persisted content or replacing controls.
@@ -355,7 +411,7 @@ window.resetPopScales=()=>{
  popFontScales={title:1,sub:1,gift:1,footer:1};popFont=popGiftFont=popFooterFont='medium';refreshPopFontPreview();
 };
 function setPopPreset(key,value){
- if(key==='title')popFont=value;else if(key==='gift')popGiftFont=value;else popFooterFont=value;
+ if(key==='title')popFont=value;else if(key==='gift')popGiftFont=value;else if(key==='footer')popFooterFont=value;
  if(!isModernPop()){render();return;}
  popFontScales[key]=fontScale(value);refreshPopFontPreview();
 }
@@ -504,6 +560,7 @@ function restorePopEditorState(state){
  editor.querySelector('.popEditorPanel').scrollTop=state.scroll;
 }
 function render(){
+stopPopScaleHold(true);
 const popEditorState=tab==='popdesign'?capturePopEditorState():null;
 if(tab==='line'){$('result').innerHTML=`<h3>LINE配信文を編集</h3><label>タイトル</label><textarea id="lineTitle">${esc(contents.line?.title||'')}</textarea><label>本文</label><textarea id="lineBody" style="min-height:330px">${esc(contents.line?.body||'')}</textarea><button class="btn" onclick="saveLineEdit()">LINEを保存</button>
 <button class="btn2" onclick="copyLineText()">文章をコピー</button>
@@ -584,7 +641,7 @@ ${gift ? `
   </div>
 
 </div></details>
-<details class="popEditorGroup" data-pop-group="size"><summary>文字サイズ</summary><div class="controlGrid">
+<details class="popEditorGroup" data-pop-group="size"><summary>文字サイズ</summary>${isModernPop()?popFontControls():`<div class="controlGrid">
   <div class="controlItem">
     <label>タイトルサイズ</label>
     <div class="seg">
@@ -619,7 +676,7 @@ ${gift ? `
     `).join('')}
   </div>
 </div>
-</div>${popFontControls()}</details>
+</div>`}</details>
 <details class="popEditorGroup" data-pop-group="design"><summary>デザイン</summary>${popTextDesignControls()}<div class="controlGrid">
   <div class="controlItem">
     <label>文字色</label>
