@@ -209,6 +209,14 @@ justify-content:flex-start;
  .instaEditorRoot .instaEditorPanel{max-height:var(--insta-editor-height);overflow-y:auto;overscroll-behavior-y:contain;scrollbar-gutter:stable}
 }
 .instaBackgroundControls{margin-top:16px;padding:10px;background:#fff;border:1px solid var(--line);border-radius:10px}.instaBackgroundControls>label{margin-top:0}.instaBackgroundControls .seg{display:flex;flex-wrap:wrap;gap:6px}.instaBackgroundControls input[type="range"]{padding:0;min-height:44px;accent-color:var(--accent)}
+.instaSizeRow{padding:12px 0;border-bottom:1px solid var(--line)}
+.instaSizeRow>label{margin:0 0 8px}
+.instaSizeControls{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.instaSizeControls .seg{display:flex;gap:4px;flex-wrap:nowrap}
+.instaSizeControls .seg button{padding:6px 8px;min-width:40px}
+.instaPercentControls{display:flex;align-items:center;gap:4px}
+.instaPercentControls input{width:60px;padding:8px 4px;text-align:center}
+.instaPercentControls button{width:44px;min-height:44px;background:#fff;border:1px solid var(--line);border-radius:8px;touch-action:none;user-select:none;-webkit-touch-callout:none}
 </style></head><body><main class="wrap"><div class="head"><div><div>
   <h2 style="margin:0">SALON PROMO</h2>
   <div style="font-size:12px;letter-spacing:.08em;color:var(--muted);margin-top:3px">AI Promotion Studio</div>
@@ -716,6 +724,7 @@ ${gift ? `
 </div></div></div>`;
 }
 function render(){
+stopInstaScaleHold(true);
 captureInstaDraft();
 const instaPanelState=tab==='image'?captureInstaPanelState():null;
 stopPopScaleHold(true);
@@ -817,30 +826,8 @@ if(tab==='image'){const labels=['人物・施術','サロン空間','イメー�
 <details class="instaEditorGroup" data-insta-group="image" ${!imageSrc||!outputs.includes('image')?'open':''}><summary>画像</summary><p class="helper">AIは低画質で「人物・施術」「サロン空間」「イメージビジュアル」の3方向を作ります。</p><div class="quick"><button onclick="setRevision('施術を受けている大人女性を主役にしてください。施術者の手元も自然に見せてください。')">施術シーン</button><button onclick="setRevision('より上質で高級感のあるサロン空間にしてください。')">もっと高級感</button><button onclick="setRevision('全体を明るく、清潔感のある自然光の印象にしてください。')">もっと明るく</button></div><label>画像の追加希望</label><textarea id="rev"></textarea><div class="actions"><button class="btn" onclick="generateCandidates()">方向性の違うAI画像を3候補つくる</button></div><p class="${imageStatus.startsWith('エラー')?'error':'muted'}">${esc(imageStatus)}</p>${candidateHtml}<div class="uploadBox" style="margin-top:18px"><h4 class="sectionTitle">手持ちの画像を使う</h4><p class="helper">サロンで撮影した写真などを背景画像として使用できます。</p><input id="uploadImage" type="file" accept="image/*" onchange="handleUpload(event)"></div>${outputs.includes('image')?instaBackgroundControls():''}</details>
 ${outputs.includes('image')?`<details class="instaEditorGroup" data-insta-group="content" open><summary>文字・内容</summary><p class="helper">プレビュー上の文字を直接ドラッグして、好きな位置へ移動できます。</p><label>文字表示</label><select id="instaMode" onchange="setInstaMode(this.value)"><option value="none" ${instagramEditor.mode==='none'?'selected':''}>文字なし</option><option value="title" ${instagramEditor.mode==='title'?'selected':''}>タイトルのみ</option><option value="titleGift" ${instagramEditor.mode==='titleGift'?'selected':''}>タイトル＋サービス</option></select><label>タイトル（改行可）</label><textarea id="overlayTitle" oninput="updateInstaText()">${esc(instagramEditor.blocks.title.text)}</textarea><label>サービス・補足（改行可）</label><textarea id="overlayGift" oninput="updateInstaText()">${esc(instagramEditor.blocks.gift.text)}</textarea><label>下部の案内（改行可）</label><textarea id="overlayFooter" oninput="updateInstaText()">${esc(instagramEditor.blocks.footer.text)}</textarea>
 </details>
-<details class="instaEditorGroup" data-insta-group="size"><summary>文字サイズ</summary>  <div class="controlGrid">
-  <div class="controlItem">
-    <label>タイトルサイズ</label>
-    <div class="seg">
-      ${['small','medium','large'].map(v=>`<button class="${instagramEditor.blocks.title.size===v?'active':''}" onclick="setInstaTitleFont('${v}')">${v==='small'?'小':v==='medium'?'標準':'大'}</button>`).join('')}
-    </div>
-  </div>
-
-  <div class="controlItem">
-    <label>サービスサイズ</label>
-    <div class="seg">
-      ${['small','medium','large'].map(v=>`<button class="${instagramEditor.blocks.gift.size===v?'active':''}" onclick="setInstaGiftFont('${v}')">${v==='small'?'小':v==='medium'?'標準':'大'}</button>`).join('')}
-    </div>
-  </div>
-
-  <div class="controlItem">
-    <label>期間・条件サイズ</label>
-    <div class="seg">
-      ${['small','medium','large'].map(v=>`<button class="${instagramEditor.blocks.footer.size===v?'active':''}" onclick="setInstaFooterFont('${v}')">${v==='small'?'小':v==='medium'?'標準':'大'}</button>`).join('')}
-    </div>
-  </div>
-</div>
-</details>
-<details class="instaEditorGroup" data-insta-group="design"><summary>デザイン</summary>  <label>文字揃え</label><div class="seg">${['left','center','right'].map(v=>`<button class="${instagramEditor.align===v?'active':''}" onclick="setInstaAlign('${v}')">${v==='left'?'左':v==='center'?'中央':'右'}</button>`).join('')}</div></details><div class="actions"><button class="btn" onclick="saveImageText()">文字を反映・保存</button><button class="btn btn2" onclick="downloadInsta()">Instagram画像を保存</button></div>`:''}
+<details class="instaEditorGroup" data-insta-group="size"><summary>文字サイズ</summary>${instaSizeControls()}</details>
+<details class="instaEditorGroup" data-insta-group="design"><summary>デザイン</summary>${instaFontControls()}<label>文字揃え</label><div class="seg">${['left','center','right'].map(v=>`<button class="${instagramEditor.align===v?'active':''}" onclick="setInstaAlign('${v}')">${v==='left'?'左':v==='center'?'中央':'右'}</button>`).join('')}</div></details><div class="actions"><button class="btn" onclick="saveImageText()">文字を反映・保存</button><button class="btn btn2" onclick="downloadInsta()">Instagram画像を保存</button></div>`:''}
 </aside></div>`;const root=restoreInstaPanelState(instaPanelState);requestAnimationFrame(()=>{if(!root.isConnected)return;layoutInstaPreview();if(instaPanelState)root.querySelector('.instaEditorPanel').scrollTop=instaPanelState.scroll;});}}
 
 async function saveVersion(type,title,body,hashtags=[]){const{data:cur}=await sb.from('promotion_contents').select('id,version').eq('promotion_id',currentPromoId).eq('content_type',type).eq('is_current',true).order('version',{ascending:false}).limit(1).maybeSingle();if(cur)await sb.from('promotion_contents').update({is_current:false}).eq('id',cur.id);const{error}=await sb.from('promotion_contents').insert({promotion_id:currentPromoId,content_type:type,title,body,hashtags:hashtags||[],version:(cur?.version||0)+1,is_current:true});if(error)throw error;$('saveMsg').textContent='保存しました。';$('saveMsg').className='ok'}
@@ -977,9 +964,9 @@ i===1 ? 'サロン空間（人物・施術の代替案）' :
 };
 function createInstagramEditor(texts={}){
  return {version:1,mode:'titleGift',align:'center',background:{type:'legacyGradient'},blocks:{
-  title:{text:texts.title||'',x:50,y:28,size:'medium',font:'serif',weight:600},
-  gift:{text:texts.gift||'',x:50,y:58,size:'medium',font:'sans',weight:400},
-  footer:{text:texts.footer||'',x:50,y:84,size:'medium',font:'sans',weight:400}
+  title:{text:texts.title||'',x:50,y:28,size:'medium',scale:1,font:'serif',weight:600},
+  gift:{text:texts.gift||'',x:50,y:58,size:'medium',scale:1,font:'sans',weight:400},
+  footer:{text:texts.footer||'',x:50,y:84,size:'medium',scale:1,font:'sans',weight:400}
  }};
 }
 function resetInstagramEditor(){
@@ -1001,6 +988,7 @@ function restoreInstagramEditor(meta){
   const text=source.text??meta['overlay'+cap];if(typeof text==='string')block.text=text;
   block.x=coordinate(source.x??meta['insta'+cap+'X'],block.x);block.y=coordinate(source.y??meta['insta'+cap+'Y'],block.y);
   const size=source.size??meta['insta'+cap+'Font'];if(validSize(size))block.size=size;
+  block.scale=typeof source.scale==='number'&&Number.isFinite(source.scale)&&source.scale>=.5&&source.scale<=1.5?Math.round(source.scale*100)/100:1;
   if(['serif','sans'].includes(source.font))block.font=source.font;
   if([400,600,700].includes(source.weight))block.weight=source.weight;
  }
@@ -1017,6 +1005,49 @@ function captureInstaDraft(){
  const root=document.querySelector('.instaEditorRoot');if(!root||root.editorOwner!==selected||root.editorPromo!==currentPromoId)return;
  for(const [id,key] of [['overlayTitle','title'],['overlayGift','gift'],['overlayFooter','footer']])if($(id))instagramEditor.blocks[key].text=$(id).value;
 }
+const INSTA_BLOCK_LABELS={title:'タイトル',gift:'サービス・補足',footer:'下部案内'};
+function instaFontControls(){
+ return Object.entries(INSTA_BLOCK_LABELS).map(([key,label])=>`<label for="instaFont-${key}">${label}の書体</label><select id="instaFont-${key}" onchange="setInstaFont('${key}',this.value)"><option value="serif" ${instagramEditor.blocks[key].font==='serif'?'selected':''}>明朝体</option><option value="sans" ${instagramEditor.blocks[key].font==='sans'?'selected':''}>ゴシック体</option></select>`).join('');
+}
+function instaSizeControls(){
+ const handlers={title:'setInstaTitleFont',gift:'setInstaGiftFont',footer:'setInstaFooterFont'};
+ return Object.entries(INSTA_BLOCK_LABELS).map(([key,label])=>{const b=instagramEditor.blocks[key];return `<div class="instaSizeRow"><label for="instaScale-${key}">${label}</label><div class="instaSizeControls"><div class="seg">${['small','medium','large'].map(size=>`<button type="button" class="${b.size===size?'active':''}" onclick="${handlers[key]}('${size}')">${size==='small'?'小':size==='medium'?'標準':'大'}</button>`).join('')}</div><div class="instaPercentControls"><button type="button" aria-label="${label}を1％小さく" onpointerdown="startInstaScaleHold(event,'${key}',-1)" onpointerleave="stopInstaScaleHold(true)" oncontextmenu="event.preventDefault()" onclick="clickInstaScale(event,'${key}',-1)">−</button><input id="instaScale-${key}" type="number" min="50" max="150" step="1" value="${Math.round((b.scale??1)*100)}" oninput="inputInstaScale('${key}',this)" onblur="this.value=Math.round((instagramEditor.blocks['${key}'].scale??1)*100)"><span>％</span><button type="button" aria-label="${label}を1％大きく" onpointerdown="startInstaScaleHold(event,'${key}',1)" onpointerleave="stopInstaScaleHold(true)" oncontextmenu="event.preventDefault()" onclick="clickInstaScale(event,'${key}',1)">＋</button></div></div></div>`}).join('')+'<p class="helper">％は選択した小・標準・大を基準とします。＋／−は長押しで連続調整できます。収まらない文字は自動で縮小します。</p>';
+}
+function syncInstaSizeControls(){
+ for(const key of Object.keys(INSTA_BLOCK_LABELS)){const input=$('instaScale-'+key);if(input&&input!==document.activeElement)input.value=Math.round((instagramEditor.blocks[key].scale??1)*100);}
+}
+window.setInstaFont=(key,font)=>{if(!Object.hasOwn(INSTA_BLOCK_LABELS,key)||!['serif','sans'].includes(font))return;captureInstaDraft();instagramEditor.blocks[key].font=font;refreshInstaPreview();};
+window.inputInstaScale=(key,input)=>{if(input.value.trim()===''||!Number.isFinite(Number(input.value)))return;stopInstaScaleHold(true);captureInstaDraft();instagramEditor.blocks[key].scale=clamp(Math.round(Number(input.value)),50,150)/100;refreshInstaPreview();};
+function adjustInstaScale(key,delta){captureInstaDraft();const b=instagramEditor.blocks[key];b.scale=clamp(Math.round((b.scale??1)*100)+delta,50,150)/100;refreshInstaPreview();}
+let instaScaleHold=null;
+const instaScaleClickBlocks=new WeakSet();
+function stopInstaScaleHold(cancel=false){
+ if(!instaScaleHold)return;clearTimeout(instaScaleHold.timer);
+ if(cancel||instaScaleHold.repeated)instaScaleClickBlocks.add(instaScaleHold.button);
+ instaScaleHold=null;
+}
+window.startInstaScaleHold=(event,key,delta)=>{
+ if(!event.isPrimary||event.button!==0)return;stopInstaScaleHold(true);
+ const button=event.currentTarget;button.focus({preventScroll:true});instaScaleClickBlocks.delete(button);
+ const hold={button,key,delta,pointerId:event.pointerId,started:performance.now(),repeated:false,timer:null};instaScaleHold=hold;
+ const repeat=()=>{
+  if(instaScaleHold!==hold)return;
+  if(!button.isConnected||tab!=='image'||document.hidden){stopInstaScaleHold(true);return;}
+  hold.repeated=true;adjustInstaScale(key,delta);const scale=instagramEditor.blocks[key].scale;
+  if(scale===.5||scale===1.5){stopInstaScaleHold();return;}
+  const elapsed=performance.now()-hold.started;hold.timer=setTimeout(repeat,elapsed<1200?180:elapsed<2400?100:60);
+ };hold.timer=setTimeout(repeat,400);
+};
+window.clickInstaScale=(event,key,delta)=>{const button=event.currentTarget;if(event.detail!==0&&instaScaleClickBlocks.has(button)){instaScaleClickBlocks.delete(button);return;}adjustInstaScale(key,delta);};
+window.addEventListener('pointerup',()=>stopInstaScaleHold(),true);
+window.addEventListener('pointercancel',()=>stopInstaScaleHold(true),true);
+window.addEventListener('pointermove',event=>{if(!instaScaleHold||event.pointerId!==instaScaleHold.pointerId)return;const r=instaScaleHold.button.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)stopInstaScaleHold(true);},true);
+window.addEventListener('blur',()=>stopInstaScaleHold(true));
+window.addEventListener('pagehide',()=>stopInstaScaleHold(true));
+window.addEventListener('scroll',()=>stopInstaScaleHold(true),true);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopInstaScaleHold(true)});
+document.addEventListener('toggle',event=>{if(instaScaleHold&&event.target.tagName==='DETAILS'&&!event.target.open&&event.target.contains(instaScaleHold.button))stopInstaScaleHold(true);},true);
+new MutationObserver(()=>{if($('results').classList.contains('hide'))stopInstaScaleHold(true)}).observe($('results'),{attributes:true,attributeFilter:['class']});
 function instaBackgroundControls(){
  const bg=instagramEditor.background,legacy=bg.type==='legacyGradient';
  return `<div class="instaBackgroundControls"><label>背景画像の表示</label><div class="seg" role="group" aria-label="Instagram背景画像の表示">${[['none','加工なし'],['light','明るく'],['dark','暗く']].map(([mode,label])=>`<button type="button" data-insta-background="${mode}" class="${!legacy&&bg.mode===mode?'active':''}" onclick="setInstaBackgroundMode('${mode}')">${label}</button>`).join('')}</div><div id="instaBackgroundAmount" ${legacy||bg.mode==='none'?'hidden':''}><label for="instaBackgroundRange">加工の強さ：<output id="instaBackgroundValue" for="instaBackgroundRange">${legacy?50:bg.strength}％</output></label><input id="instaBackgroundRange" type="range" min="0" max="100" step="1" value="${legacy?50:bg.strength}" oninput="setInstaBackgroundStrength(this.value)"></div><p id="instaLegacyBackground" class="helper" ${legacy?'':'hidden'}>現在は従来の背景表示です。モードを選ぶと背景調整に切り替わります。</p></div>`;
@@ -1092,7 +1123,7 @@ function layoutInstaPreview(){
   const top=i?(previous+cy)/2:2,bottom=i+1<nodes.length?(cy+next)/2:98;
   el.style.left=cx+'%';el.style.top=cy+'%';el.style.width=Math.max(4,Math.min(84,2*Math.min(cx-2,98-cx)))+'%';el.style.maxWidth=el.style.width;
   Object.assign(text.style,{fontFamily:b.font==='serif'?'serif':'-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic",Meiryo,sans-serif',fontWeight:String(b.weight),whiteSpace:'pre-wrap',overflowWrap:'anywhere',marginTop:el.dataset.instaBlock==='title'?'0':10*scale+'px'});
-  let size=sizes[el.dataset.instaBlock][b.size]*scale;const minimum=8*scale,available=Math.max(0,(bottom-top)/100*h-8*scale);
+  let size=sizes[el.dataset.instaBlock][b.size]*(b.scale??1)*scale;const minimum=8*scale,available=Math.max(0,(bottom-top)/100*h-8*scale);
   text.style.fontSize=size+'px';
   while((el.offsetHeight>available||el.scrollWidth>el.clientWidth+1)&&size>minimum){size=Math.max(minimum,size-.25*scale);text.style.fontSize=size+'px';}
   el.style.top=clamp(cy/100*h,top/100*h+el.offsetHeight/2,bottom/100*h-el.offsetHeight/2)/h*100+'%';
@@ -1104,6 +1135,7 @@ function refreshInstaPreview(){
  const frame=document.querySelector('.instaFrame');if(frame)frame.outerHTML=instaPreviewMarkup();
  layoutInstaPreview();
  const controls={setInstaTitleFont:instagramEditor.blocks.title.size,setInstaGiftFont:instagramEditor.blocks.gift.size,setInstaFooterFont:instagramEditor.blocks.footer.size,setInstaAlign:instagramEditor.align};
+ syncInstaSizeControls();
  for(const [handler,value] of Object.entries(controls))document.querySelectorAll(`.instaEditorRoot button[onclick^="${handler}("]`).forEach(button=>button.classList.toggle('active',button.getAttribute('onclick')===`${handler}('${value}')`));
 }
 window.updateInstaText=()=>{captureInstaDraft();refreshInstaPreview();};
@@ -1113,7 +1145,7 @@ window.chooseImageCandidate=async i=>{imageSrc=imageCandidates[i];imageStatus='�
 window.handleUpload=e=>{const file=e.target.files?.[0];if(!file)return;const reader=new FileReader();reader.onload=async()=>{imageSrc=reader.result;imageCandidates=[];imageStatus='アップロード画像を保存しています…';render();try{await persistImage(imageSrc);imageStatus='アップロード画像を使用します。保存しました。'}catch(err){imageStatus=`エラー：${err.message}`}render()};reader.readAsDataURL(file)};
 window.setInstaMode=value=>{captureInstaDraft();instagramEditor.mode=value;refreshInstaPreview();};
 window.setInstaAlign=value=>{captureInstaDraft();instagramEditor.align=value;refreshInstaPreview();};
-function setInstaSize(block,value){captureInstaDraft();instagramEditor.blocks[block].size=value;refreshInstaPreview();}
+function setInstaSize(block,value){stopInstaScaleHold(true);captureInstaDraft();instagramEditor.blocks[block].size=value;instagramEditor.blocks[block].scale=1;refreshInstaPreview();}
 window.setInstaTitleFont=value=>setInstaSize('title',value);
 window.setInstaGiftFont=value=>setInstaSize('gift',value);
 window.setInstaFooterFont=value=>setInstaSize('footer',value);
