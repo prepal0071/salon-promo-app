@@ -133,8 +133,7 @@ justify-content:flex-start;
 .popModern .popH{font-family:serif;font-weight:600;line-height:1.22}
 .popModern .popGift{padding:0;border:0;line-height:1.35}
 .popModern .popGift:before,.popModern .popGift:after{display:none}
-.popModern .popOffer{display:block;padding:8px 0;border-bottom:1px solid currentColor}
-.popModern .popOffer:last-child{border-bottom:0}
+.popModern .popOffer{display:block;padding:8px 0}
 .popModern .popNumber{display:inline;font-size:1.65em;font-weight:700;line-height:1.15}
 .popModern .popBrand{color:inherit;font-size:inherit;line-height:1.4;margin-top:10px;letter-spacing:.08em}
 .popModern:before{content:'';position:absolute;inset:4%;border:1px solid #a88c6470;z-index:1;pointer-events:none}
@@ -143,8 +142,7 @@ justify-content:flex-start;
 .popModern.pop-menu .popGift{font-family:serif;font-weight:600}
 
 .popFour .popText{box-sizing:border-box}
-.popFour .popOffer{padding:6px 0;border-bottom:1px solid currentColor}
-.popFour .popOffer:last-child{border-bottom:0}
+.popFour .popOffer{padding:6px 0}
 .popFour .popGift,.popFour .popH{font-family:"Noto Serif CJK JP","Yu Mincho","Hiragino Mincho ProN",serif}
 .popFour .popH{letter-spacing:.02em}
 .popSizeRow{padding:12px 0;border-bottom:1px solid var(--line)}
@@ -169,7 +167,6 @@ justify-content:flex-start;
 .popFour.text-offer .popGift{font-family:var(--pop-sans);font-weight:700}
 .popFour.text-offer [data-pop-block="popGift"]{background:var(--pop-band);border-top:2px solid var(--pop-rule);border-bottom:2px solid var(--pop-rule);border-radius:4px}
 .popFour.text-offer .popNumber{font-weight:800}
-.popFour.text-elegant .popOffer,.popFour.text-clean .popOffer,.popFour.text-offer .popOffer{border-bottom-color:var(--pop-rule)}
 .popFour.has-pop-accent .popNumber{color:var(--pop-accent)}
 .popEditor{display:grid;gap:20px;align-items:start}
 .popEditorPreview,.popEditorPanel{min-width:0}
@@ -192,6 +189,7 @@ justify-content:flex-start;
  .popEditor .popEditorPanel{max-height:var(--pop-editor-height);overflow-y:auto;overscroll-behavior-y:contain;scrollbar-gutter:stable}
 }
 .popBackgroundControls{padding:10px;background:#fff;border:1px solid var(--line);border-radius:10px}.popBackgroundControls>label{margin-top:0}.popBackgroundControls .seg{display:flex;flex-wrap:wrap;gap:6px}.popBackgroundControls input[type="range"]{padding:0;min-height:44px;accent-color:var(--accent)}
+.popBrandControls{margin:12px 0}.popBrandControls .check{justify-content:flex-start}.popBrandControls input[type="checkbox"]{width:auto;min-height:0}
 </style></head><body><main class="wrap"><div class="head"><div><div>
   <h2 style="margin:0">SALON PROMO</h2>
   <div style="font-size:12px;letter-spacing:.08em;color:var(--muted);margin-top:3px">AI Promotion Studio</div>
@@ -394,6 +392,7 @@ function refreshPopFontPreview(){
  try{frame.outerHTML=isModernPop()?modernPopMarkup():legacyPopMarkup(contents.pop.headline,contents.pop.subheadline,contents.pop.gift_display,contents.pop.footer_display);}finally{contents.pop=saved;}
  if(!isModernPop())sizePopEditor();
  fitModernPop();
+ syncPopBrandControls();
  for(const key of Object.keys(POP_FONT_KEYS)){
   const input=$('popScale-'+key);if(input&&input!==document.activeElement)input.value=Math.round(popScale(key)*100);
  }
@@ -459,7 +458,43 @@ window.setPopVeilStrength=value=>{
  if(String(value).trim()===''||!Number.isFinite(Number(value)))return;
  popBackgroundVeil={...popVeilSettings(),strength:clamp(Math.round(Number(value)),0,100)};refreshPopVeil();
 };
+let popShowBrand=true,popBrandGap=null;
+function restorePopBrand(){
+ const layout=contents.pop?.layout||{};
+ popShowBrand=layout.showBrand!==false;
+ popBrandGap=typeof layout.brandGap==='number'&&Number.isFinite(layout.brandGap)&&layout.brandGap>=0&&layout.brandGap<=40?layout.brandGap:null;
+}
+function popBrandMarkup(){
+ if(!popShowBrand)return '';
+ const color=isModernPop()?'':` style="color:${popTextColor==='white'?'#fff':'#3b332f'}"`;
+ return `<div class="popBrand"${color}>${esc(salon.salon_name)}</div>`;
+}
+function popBrandGapValue(){
+ if(popBrandGap!==null)return popBrandGap;
+ const frame=document.querySelector('.popPreview'),brand=frame?.querySelector('.popBrand');
+ if(!frame?.clientWidth||!brand)return 0;
+ const gap=parseFloat(getComputedStyle(brand).marginTop)*620/frame.clientWidth;
+ return Number.isFinite(gap)?clamp(Math.round(gap),0,40):0;
+}
+function applyPopBrandGap(frame){
+ const brand=frame?.querySelector('.popBrand');
+ if(brand&&popBrandGap!==null)brand.style.marginTop=(popBrandGap*frame.clientWidth/620)+'px';
+}
+function popBrandControls(){
+ return `<div class="popBrandControls"><label class="check"><input id="popShowBrand" type="checkbox" ${popShowBrand?'checked':''} onchange="setPopShowBrand(this.checked)">店舗名を表示</label><div id="popBrandGapControls" ${popShowBrand?'':'hidden'}><label for="popBrandGap">店舗名の前の余白</label><div class="popPercentControls"><button type="button" aria-label="店舗名の余白を小さく" onclick="setPopBrandGap(popBrandGapValue()-1)">−</button><input id="popBrandGap" type="number" min="0" max="40" step="1" value="${popBrandGapValue()}" oninput="if(this.value!=='')setPopBrandGap(this.value)" onblur="this.value=popBrandGapValue()"><span>px</span><button type="button" aria-label="店舗名の余白を大きく" onclick="setPopBrandGap(popBrandGapValue()+1)">＋</button></div><p class="helper">幅620pxを基準とした余白です。表示・出力時はPOPの幅に合わせて調整します。</p></div></div>`;
+}
+function syncPopBrandControls(){
+ if($('popShowBrand'))$('popShowBrand').checked=popShowBrand;
+ if($('popBrandGapControls'))$('popBrandGapControls').hidden=!popShowBrand;
+ const input=$('popBrandGap');if(input&&input!==document.activeElement)input.value=popBrandGapValue();
+}
+window.setPopShowBrand=show=>{popShowBrand=Boolean(show);refreshPopFontPreview();};
+window.setPopBrandGap=value=>{
+ if(String(value).trim()===''||!Number.isFinite(Number(value)))return;
+ popBrandGap=clamp(Math.round(Number(value)),0,40);refreshPopFontPreview();
+};
 function restoreFourPopLayout(){
+ restorePopBrand();
  restorePopBackgroundVeil();
  restorePopTextDesign();
  restorePopFontScales();
@@ -486,13 +521,14 @@ function fourPopMarkup(){
  const p=popProfile(),parts=modernPopParts(),color=popTextColor==='white'?'#fff':'#3d372f',appearance=popTextDesignAppearance();
  const positions={popTitle:[popTitleX,popTitleY],popSub:[popSubX,popSubY],popGift:[popGiftX,popGiftY],popFooter:[popFooterX,popFooterY]};
  const rows=popOfferMarkup(parts.gift,p.numberScale);
- const text={popTitle:`<div class="popH">${esc(parts.headline)}</div>`,popSub:`<div class="popSub">${esc(parts.sub)}</div>`,popGift:`<div class="popGift">${rows}</div>`,popFooter:`<div class="popFoot">${esc(parts.footer)}</div><div class="popBrand">${esc(salon.salon_name)}</div>`};
+ const text={popTitle:`<div class="popH">${esc(parts.headline)}</div>`,popSub:`<div class="popSub">${esc(parts.sub)}</div>`,popGift:`<div class="popGift">${rows}</div>`,popFooter:`<div class="popFoot">${esc(parts.footer)}</div>${popBrandMarkup()}`};
  const blocks=Object.entries(p.blocks).map(([key,b])=>`<div class="popText" data-pop-block="${key}" onpointerdown="startDrag(event,'${key}')" style="${textPosStyle(...positions[key],popAlign)}width:${b.width}%;max-width:${b.width}%;color:${color};${key==='popGift'&&!appearance.decorated?p.decoration:''}">${text[key]}</div>`).join('');
  return `<div class="popPreview popModern popFour${appearance.className}" style="color:${color};${appearance.style}">${imageSrc?`<img class="popBg" src="${esc(imageSrc)}">`:''}<div class="popVeil" style="${popVeilStyle()}"></div><div class="popOverlayMain">${blocks}</div></div>`;
 }
 function fitFourPop(){
  const frame=document.querySelector('.popFour');if(!frame)return;
  const w=frame.clientWidth,h=frame.clientHeight;if(!w||!h)return;
+ applyPopBrandGap(frame);
  const p=popProfile(),margin=p.margin/100,gap=p.gap*w/620;
  const scales={popTitle:popScale('title'),popSub:popScale('sub'),popGift:popScale('gift'),popFooter:popScale('footer')};
  const blocks=[...frame.querySelectorAll('[data-pop-block]')].filter(el=>el.textContent.trim()).sort((a,b)=>parseFloat(a.style.top)-parseFloat(b.style.top));
@@ -549,12 +585,13 @@ function modernPopMarkup(){
   const color=popTextColor==='white'?'#fff':'#3d372f';
   const text=(kind,x,y,body)=>`<div class="popText" data-pop-block="${kind}" onpointerdown="startDrag(event,'${kind}')" style="${textPosStyle(x,y,popAlign)};color:${color}">${body}</div>`;
   const offers=popOfferMarkup(parts.gift);
-  return `<div class="popPreview popModern pop-${variant}">${imageSrc?`<img class="popBg" src="${esc(imageSrc)}">`:''}<div class="popVeil" style="${popVeilStyle()}"></div><div class="popOverlayMain">${text('popTitle',popTitleX,popTitleY,`<div class="popH">${esc(parts.headline)}</div>`)}${text('popSub',popSubX,popSubY,`<div class="popSub">${esc(parts.sub)}</div>`)}${text('popGift',popGiftX,popGiftY,`<div class="popGift">${offers}</div>`)}${text('popFooter',popFooterX,popFooterY,`<div class="popFoot">${esc(parts.footer)}</div><div class="popBrand">${esc(salon.salon_name)}</div>`)}</div></div>`;
+  return `<div class="popPreview popModern pop-${variant}">${imageSrc?`<img class="popBg" src="${esc(imageSrc)}">`:''}<div class="popVeil" style="${popVeilStyle()}"></div><div class="popOverlayMain">${text('popTitle',popTitleX,popTitleY,`<div class="popH">${esc(parts.headline)}</div>`)}${text('popSub',popSubX,popSubY,`<div class="popSub">${esc(parts.sub)}</div>`)}${text('popGift',popGiftX,popGiftY,`<div class="popGift">${offers}</div>`)}${text('popFooter',popFooterX,popFooterY,`<div class="popFoot">${esc(parts.footer)}</div>${popBrandMarkup()}`)}</div></div>`;
 }
 function fitModernPop(){
   if(isFourPop())return fitFourPop();
   const frame=document.querySelector('.popModern');if(!frame)return;
   const w=frame.clientWidth,h=frame.clientHeight;if(!w||!h)return;
+  applyPopBrandGap(frame);
   const scales={popTitle:popScale('title'),popSub:popScale('sub'),popGift:popScale('gift'),popFooter:popScale('footer')};
   const sizes={popTitle:40,popSub:20,popGift:contents.pop.design_variant==='menu'?32:26,popFooter:15};
   const blocks=[...frame.querySelectorAll('[data-pop-block]')].sort((a,b)=>parseFloat(a.style.top)-parseFloat(b.style.top));
@@ -582,6 +619,7 @@ function sizePopEditor(){
  // Fit the paper and independent panel below the current page heading.
  const available=Math.max(180,window.innerHeight-Math.max(16,editor.getBoundingClientRect().top)-16);
  editor.style.setProperty('--pop-editor-height',Math.floor(available)+'px');
+ applyPopBrandGap(editor.querySelector('.popPreview'));
  const legacy=editor.querySelector('.popPreview:not(.popModern)');
  if(legacy){
   // Legacy sizes use viewport units: scale their existing desktop appearance with the paper.
@@ -605,7 +643,7 @@ window.setPopAppearance=(key,value)=>{
  const values={align:popAlign,color:popTextColor,veil:popVeilTone,strength:popVeilStrength};
  document.querySelectorAll('[data-pop-appearance]').forEach(button=>button.classList.toggle('active',button.dataset.value===values[button.dataset.popAppearance]));
 };
-window.addEventListener('resize',()=>{sizePopEditor();fitModernPop()});
+window.addEventListener('resize',()=>{sizePopEditor();fitModernPop();syncPopBrandControls()});
 window.addEventListener('pointerup',()=>{fitModernPop()});
 function capturePopEditorState(){
  const editor=document.querySelector('.popEditor');
@@ -662,7 +700,7 @@ ${gift ? `
   }">
     ${esc(footer).replace(/\n/g,'<br>')}
   </div>
-  <div class="popBrand" style="color:${popTextColor==='white'?'#fff':'#3b332f'}">${esc(salon.salon_name)}</div>
+  ${popBrandMarkup()}
 </div></div></div>`;
 }
 function render(){
@@ -688,6 +726,7 @@ gift=contents.pop?.gift_display ?? selected.gift;$('result').innerHTML=`<div cla
   <textarea id="popDesignGift" oninput="refreshPopFontPreview()">${esc(gift)}</textarea>
   <label>フッター・条件（改行可）</label>
 <textarea id="popDesignFooter" oninput="refreshPopFontPreview()">${esc((isModernPop()?(contents.pop.footer_display??''):(contents.pop?.footer_display || `${fmtDate($('start').value)}〜${fmtDate($('end').value)}\n${$('target').value} ／ ${$('conditions').value}`)))}</textarea>
+${popBrandControls()}
 <div class="controlGrid">  <div class="controlItem">
     <label>文字揃え</label>
     <div class="seg">
@@ -753,7 +792,7 @@ ${popVeilControls()}
   <button class="btn" onclick="savePopDesignText()">保存して反映</button>
   <button class="btn btn2" onclick="restorePopText()">生成時の文章に戻す</button>
   <button class="btn btn2" onclick="downloadPop()">POP画像を保存</button>
-</div></aside></div>`;restorePopEditorState(popEditorState);requestAnimationFrame(()=>{sizePopEditor();fitModernPop()});return}
+</div></aside></div>`;restorePopEditorState(popEditorState);requestAnimationFrame(()=>{sizePopEditor();fitModernPop();syncPopBrandControls()});return}
 if(tab==='image'){const showText=instaTextMode!=='none',showGift=instaTextMode==='titleGift',labels=['人物・施術','サロン空間','イメージビジュアル'],candidateHtml=imageCandidates.length?`<h4 class="sectionTitle">AI画像候補</h4>${imageCandidateLabels.some(label=>label.includes('代替案'))?`
 <p class="helper" style="color:#8a5a44">
 一部の人物・施術画像が生成できなかったため、
@@ -861,6 +900,8 @@ ${$('target').value} ／ ${$('conditions').value}`;
 footer_display:$('popDesignFooter').value,
 layout:{
   ...contents.pop?.layout,
+  showBrand:popShowBrand,
+  ...(popBrandGap!==null?{brandGap:popBrandGap}:{}),
   ...(popBackgroundVeil?{backgroundVeil:{...popBackgroundVeil}}:{}),
   ...(contents.pop?.design_version===3&&popTextDesign?{textDesign:{...popTextDesign}}:{}),
   ...(isModernPop()?{fontScales:Object.fromEntries(Object.keys(POP_FONT_KEYS).map(key=>[key,popScale(key)]))}:{}),
