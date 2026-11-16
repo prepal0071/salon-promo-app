@@ -191,6 +191,7 @@ justify-content:flex-start;
  .popEditor .popPreview{width:min(100%,620px,calc(var(--pop-editor-height)*210/297))}
  .popEditor .popEditorPanel{max-height:var(--pop-editor-height);overflow-y:auto;overscroll-behavior-y:contain;scrollbar-gutter:stable}
 }
+.popBackgroundControls{padding:10px;background:#fff;border:1px solid var(--line);border-radius:10px}.popBackgroundControls>label{margin-top:0}.popBackgroundControls .seg{display:flex;flex-wrap:wrap;gap:6px}.popBackgroundControls input[type="range"]{padding:0;min-height:44px;accent-color:var(--accent)}
 </style></head><body><main class="wrap"><div class="head"><div><div>
   <h2 style="margin:0">SALON PROMO</h2>
   <div style="font-size:12px;letter-spacing:.08em;color:var(--muted);margin-top:3px">AI Promotion Studio</div>
@@ -415,7 +416,50 @@ function setPopPreset(key,value){
  if(!isModernPop()){render();return;}
  popFontScales[key]=fontScale(value);refreshPopFontPreview();
 }
+let popBackgroundVeil=null;
+function restorePopBackgroundVeil(){
+ const layout=contents.pop?.layout||{};
+ popVeilTone=layout.veilTone==='dark'?'dark':'light';
+ popVeilStrength=['light','medium','strong'].includes(layout.veilStrength)?layout.veilStrength:'medium';
+ popBackgroundVeil=null;
+ const saved=layout.backgroundVeil;
+ if(saved&&['none','light','dark'].includes(saved.mode)&&typeof saved.strength==='number'&&Number.isFinite(saved.strength)&&saved.strength>=0&&saved.strength<=100)popBackgroundVeil={mode:saved.mode,strength:Math.round(saved.strength)};
+}
+function oldPopVeilSettings(){
+ const strengths=isModernPop()?{light:70,medium:84,strong:94}:{light:22,medium:40,strong:58};
+ return {mode:popVeilTone==='dark'?'dark':'light',strength:strengths[popVeilStrength]??strengths.medium};
+}
+function popVeilSettings(){return popBackgroundVeil||oldPopVeilSettings();}
+function popVeilStyle(){
+ // Without a background image, retain the original paper appearance.
+ const veil=imageSrc?popVeilSettings():oldPopVeilSettings();
+ if(veil.mode==='none')return 'background:transparent';
+ const rgb=veil.mode==='dark'?'20,18,16':'255,250,244';
+ return `background:rgba(${rgb},${veil.strength/100})`;
+}
+function popVeilControls(){
+ const veil=popVeilSettings();
+ return `<div class="popBackgroundControls"><label>背景画像の表示</label><div class="seg" role="group" aria-label="背景画像の表示">${[['none','加工なし'],['light','明るく'],['dark','暗く']].map(([mode,label])=>`<button type="button" data-pop-veil-mode="${mode}" class="${veil.mode===mode?'active':''}" onclick="setPopVeilMode('${mode}')">${label}</button>`).join('')}</div><div id="popVeilAmount" ${veil.mode==='none'?'hidden':''}><label for="popVeilRange">加工の強さ：<output id="popVeilValue" for="popVeilRange">${veil.strength}％</output></label><input id="popVeilRange" type="range" min="0" max="100" step="1" value="${veil.strength}" oninput="setPopVeilStrength(this.value)"></div><p class="helper">背景画像がない場合は、従来の背景表示を維持します。</p></div>`;
+}
+function refreshPopVeil(){
+ const overlay=document.querySelector('.popPreview .popVeil');
+ if(overlay)overlay.style.cssText=popVeilStyle();
+ const veil=popVeilSettings();
+ document.querySelectorAll('[data-pop-veil-mode]').forEach(button=>button.classList.toggle('active',button.dataset.popVeilMode===veil.mode));
+ if($('popVeilAmount'))$('popVeilAmount').hidden=veil.mode==='none';
+ if($('popVeilRange'))$('popVeilRange').value=veil.strength;
+ if($('popVeilValue'))$('popVeilValue').textContent=veil.strength+'％';
+}
+window.setPopVeilMode=mode=>{
+ if(!['none','light','dark'].includes(mode))return;
+ popBackgroundVeil={...popVeilSettings(),mode};refreshPopVeil();
+};
+window.setPopVeilStrength=value=>{
+ if(String(value).trim()===''||!Number.isFinite(Number(value)))return;
+ popBackgroundVeil={...popVeilSettings(),strength:clamp(Math.round(Number(value)),0,100)};refreshPopVeil();
+};
 function restoreFourPopLayout(){
+ restorePopBackgroundVeil();
  restorePopTextDesign();
  restorePopFontScales();
  if(!isFourPop())return;
@@ -434,9 +478,8 @@ function fourPopMarkup(){
  const positions={popTitle:[popTitleX,popTitleY],popSub:[popSubX,popSubY],popGift:[popGiftX,popGiftY],popFooter:[popFooterX,popFooterY]};
  const rows=parts.gift.split('\n').filter(Boolean).map(line=>`<span class="popOffer">${esc(line).replace(/([0-9０-９]+(?:[.．][0-9０-９]+)?\s*[％%]\s*(?:OFF|オフ|割引)|[0-9０-９]+\s*分(?:間)?\s*サービス)/gi,`<strong class="popNumber" style="font-size:${p.numberScale}em;line-height:1.15">$1</strong>`)}</span>`).join('');
  const text={popTitle:`<div class="popH">${esc(parts.headline)}</div>`,popSub:`<div class="popSub">${esc(parts.sub)}</div>`,popGift:`<div class="popGift">${rows}</div>`,popFooter:`<div class="popFoot">${esc(parts.footer)}</div><div class="popBrand">${esc(salon.salon_name)}</div>`};
- const opacity=popVeilStrength==='light'?.70:popVeilStrength==='strong'?.94:.84;
  const blocks=Object.entries(p.blocks).map(([key,b])=>`<div class="popText" data-pop-block="${key}" onpointerdown="startDrag(event,'${key}')" style="${textPosStyle(...positions[key],popAlign)}width:${b.width}%;max-width:${b.width}%;color:${color};${key==='popGift'&&!appearance.decorated?p.decoration:''}">${text[key]}</div>`).join('');
- return `<div class="popPreview popModern popFour${appearance.className}" style="color:${color};${appearance.style}">${imageSrc?`<img class="popBg" src="${esc(imageSrc)}">`:''}<div class="popVeil" style="background:${popVeilTone==='dark'?`rgba(20,18,16,${opacity})`:`rgba(255,250,244,${opacity})`}"></div><div class="popOverlayMain">${blocks}</div></div>`;
+ return `<div class="popPreview popModern popFour${appearance.className}" style="color:${color};${appearance.style}">${imageSrc?`<img class="popBg" src="${esc(imageSrc)}">`:''}<div class="popVeil" style="${popVeilStyle()}"></div><div class="popOverlayMain">${blocks}</div></div>`;
 }
 function fitFourPop(){
  const frame=document.querySelector('.popFour');if(!frame)return;
@@ -488,8 +531,7 @@ function modernPopMarkup(){
   const color=popTextColor==='white'?'#fff':'#3d372f';
   const text=(kind,x,y,body)=>`<div class="popText" data-pop-block="${kind}" onpointerdown="startDrag(event,'${kind}')" style="${textPosStyle(x,y,popAlign)};color:${color}">${body}</div>`;
   const offers=parts.gift.split('\n').filter(Boolean).map(line=>`<span class="popOffer">${esc(line).replace(/([0-9０-９]+(?:[.．][0-9０-９]+)?\s*[％%]\s*(?:OFF|オフ|割引)|[0-9０-９]+\s*分(?:間)?\s*サービス)/gi,'<strong class="popNumber">$1</strong>')}</span>`).join('');
-  const opacity=popVeilStrength==='light'?.70:popVeilStrength==='strong'?.94:.84;
-  return `<div class="popPreview popModern pop-${variant}">${imageSrc?`<img class="popBg" src="${esc(imageSrc)}">`:''}<div class="popVeil" style="background:${popVeilTone==='dark'?`rgba(20,18,16,${opacity})`:`rgba(255,250,244,${opacity})`}"></div><div class="popOverlayMain">${text('popTitle',popTitleX,popTitleY,`<div class="popH">${esc(parts.headline)}</div>`)}${text('popSub',popSubX,popSubY,`<div class="popSub">${esc(parts.sub)}</div>`)}${text('popGift',popGiftX,popGiftY,`<div class="popGift">${offers}</div>`)}${text('popFooter',popFooterX,popFooterY,`<div class="popFoot">${esc(parts.footer)}</div><div class="popBrand">${esc(salon.salon_name)}</div>`)}</div></div>`;
+  return `<div class="popPreview popModern pop-${variant}">${imageSrc?`<img class="popBg" src="${esc(imageSrc)}">`:''}<div class="popVeil" style="${popVeilStyle()}"></div><div class="popOverlayMain">${text('popTitle',popTitleX,popTitleY,`<div class="popH">${esc(parts.headline)}</div>`)}${text('popSub',popSubX,popSubY,`<div class="popSub">${esc(parts.sub)}</div>`)}${text('popGift',popGiftX,popGiftY,`<div class="popGift">${offers}</div>`)}${text('popFooter',popFooterX,popFooterY,`<div class="popFoot">${esc(parts.footer)}</div><div class="popBrand">${esc(salon.salon_name)}</div>`)}</div></div>`;
 }
 function fitModernPop(){
   if(isFourPop())return fitFourPop();
@@ -570,11 +612,7 @@ if(tab==='insta'){$('result').innerHTML=`<h3>Instagram投稿文を編集</h3><la
 <button class="btn2" onclick="openInstagram()">Instagramを開く</button>`;return}
 if(tab==='popdesign'){const head=contents.pop?.headline ?? selected.title,
 sub=contents.pop?.subheadline ?? selected.catch,
-gift=contents.pop?.gift_display ?? selected.gift,fs=fontScale(popFont);$('result').innerHTML=`<div class="popEditor"><div class="popEditorPreview">${isModernPop()?modernPopMarkup():`<div class="popPreview">${imageSrc?`<img class="popBg" src="${imageSrc}">`:''}<div class="popVeil" style="${
-  popVeilTone==='dark'
-    ? `background:rgba(20,18,16,${popVeilStrength==='light'?.22:popVeilStrength==='strong'?.58:.40})`
-    : `background:rgba(255,250,244,${popVeilStrength==='light'?.22:popVeilStrength==='strong'?.58:.40})`
-}"></div><div class="popOverlayMain"><div class="popText"
+gift=contents.pop?.gift_display ?? selected.gift,fs=fontScale(popFont);$('result').innerHTML=`<div class="popEditor"><div class="popEditorPreview">${isModernPop()?modernPopMarkup():`<div class="popPreview">${imageSrc?`<img class="popBg" src="${imageSrc}">`:''}<div class="popVeil" style="${popVeilStyle()}"></div><div class="popOverlayMain"><div class="popText"
   onpointerdown="startDrag(event,'popTitle')"
   style="${textPosStyle(popTitleX,popTitleY,popAlign)};color:${popTextColor==='white'?'#ffffff':'#3d372f'}">
   
@@ -688,27 +726,7 @@ ${gift ? `
     </div>
   </div>
 
-  <div class="controlItem">
-    <label>背景ベール</label>
-    <div class="seg">
-      <button class="${popVeilTone==='light'?'active':''}"
-        data-pop-appearance="veil" data-value="light" onclick="setPopAppearance('veil','light')">明るい</button>
-      <button class="${popVeilTone==='dark'?'active':''}"
-        data-pop-appearance="veil" data-value="dark" onclick="setPopAppearance('veil','dark')">暗い</button>
-    </div>
-  </div>
-
-  <div class="controlItem veilStrengthItem">
-    <label>ベール濃さ</label>
-    <div class="seg">
-      <button class="${popVeilStrength==='light'?'active':''}"
-        data-pop-appearance="strength" data-value="light" onclick="setPopAppearance('strength','light')">薄め</button>
-      <button class="${popVeilStrength==='medium'?'active':''}"
-        data-pop-appearance="strength" data-value="medium" onclick="setPopAppearance('strength','medium')">標準</button>
-      <button class="${popVeilStrength==='strong'?'active':''}"
-        data-pop-appearance="strength" data-value="strong" onclick="setPopAppearance('strength','strong')">濃いめ</button>
-    </div>
-  </div>
+${popVeilControls()}
 </div></details><div class="popActions">
   <button class="btn" onclick="savePopDesignText()">保存して反映</button>
   <button class="btn btn2" onclick="restorePopText()">生成時の文章に戻す</button>
@@ -820,6 +838,7 @@ ${$('target').value} ／ ${$('conditions').value}`;
 footer_display:$('popDesignFooter').value,
 layout:{
   ...contents.pop?.layout,
+  ...(popBackgroundVeil?{backgroundVeil:{...popBackgroundVeil}}:{}),
   ...(contents.pop?.design_version===3&&popTextDesign?{textDesign:{...popTextDesign}}:{}),
   ...(isModernPop()?{fontScales:Object.fromEntries(Object.keys(POP_FONT_KEYS).map(key=>[key,popScale(key)]))}:{}),
   textColor:popTextColor,veilTone:popVeilTone,veilStrength:popVeilStrength,
