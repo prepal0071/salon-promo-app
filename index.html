@@ -191,6 +191,23 @@ justify-content:flex-start;
 .popBackgroundControls{padding:10px;background:#fff;border:1px solid var(--line);border-radius:10px}.popBackgroundControls>label{margin-top:0}.popBackgroundControls .seg{display:flex;flex-wrap:wrap;gap:6px}.popBackgroundControls input[type="range"]{padding:0;min-height:44px;accent-color:var(--accent)}
 .popBrandControls{margin:12px 0}.popBrandControls .check{justify-content:flex-start}.popBrandControls input[type="checkbox"]{width:auto;min-height:0}
 .instaFrame>img{position:absolute}.instaFrame .instaText>div{white-space:pre-wrap;overflow-wrap:anywhere}
+.instaEditorRoot{display:grid;gap:20px;align-items:start}
+.instaPreviewColumn,.instaEditorPanel{min-width:0}
+.instaEditorRoot .instaEditorPanel{margin:0;text-align:left}
+.instaEditorPanel .controlGrid{grid-template-columns:1fr}
+.instaEditorPanel .controlItem{height:auto}
+.instaEditorPanel .controlItem .seg{margin-top:0}
+.instaEditorPanel button,.instaEditorPanel select{min-height:44px;max-width:100%}
+.instaEditorPanel .actions{display:grid;grid-template-columns:1fr}
+.instaEditorGroup{border-top:1px solid var(--line);padding:10px 0}
+.instaEditorGroup>summary{cursor:pointer;font-weight:700;padding:8px 0;min-height:44px}
+.instaEditorGroup>summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(min-width:900px){
+ .instaEditorRoot{grid-template-columns:minmax(0,1fr) minmax(300px,.85fr);--insta-editor-height:calc(100dvh - 260px)}
+ .instaPreviewColumn{position:sticky;top:16px}
+ .instaEditorRoot .instaFrame{width:min(100%,620px,var(--insta-editor-height))}
+ .instaEditorRoot .instaEditorPanel{max-height:var(--insta-editor-height);overflow-y:auto;overscroll-behavior-y:contain;scrollbar-gutter:stable}
+}
 </style></head><body><main class="wrap"><div class="head"><div><div>
   <h2 style="margin:0">SALON PROMO</h2>
   <div style="font-size:12px;letter-spacing:.08em;color:var(--muted);margin-top:3px">AI Promotion Studio</div>
@@ -699,6 +716,7 @@ ${gift ? `
 }
 function render(){
 captureInstaDraft();
+const instaPanelState=tab==='image'?captureInstaPanelState():null;
 stopPopScaleHold(true);
 const popEditorState=tab==='popdesign'?capturePopEditorState():null;
 if(tab==='line'){$('result').innerHTML=`<h3>LINE配信文を編集</h3><label>タイトル</label><textarea id="lineTitle">${esc(contents.line?.title||'')}</textarea><label>本文</label><textarea id="lineBody" style="min-height:330px">${esc(contents.line?.body||'')}</textarea><button class="btn" onclick="saveLineEdit()">LINEを保存</button>
@@ -794,8 +812,11 @@ if(tab==='image'){const labels=['人物・施術','サロン空間','イメー�
 近い雰囲気の代替案を含めています。
 再生成すると別の人物・施術画像が生成される場合があります。
 </p>
-`:''}<p class="helper">今回は方向性を変えた3案です。使いたい画像をクリックしてください。</p><div class="candidateGrid">${imageCandidates.map((src,i)=>`<div class="candidate ${imageSrc===src?'active':''}" onclick="chooseImageCandidate(${i})"><img src="${src}"><div style="text-align:center;margin-top:6px">${imageCandidateLabels[i]||labels[i]||`候補 ${i+1}`}</div></div>`).join('')}</div>`:'';$('result').innerHTML=`<div class="instaEditorRoot" style="text-align:center">${instaPreviewMarkup()}<div class="controlBox"><h4 class="sectionTitle">画像を選ぶ</h4><p class="helper">AIは低画質で「人物・施術」「サロン空間」「イメージビジュアル」の3方向を作ります。</p><div class="quick"><button onclick="setRevision('施術を受けている大人女性を主役にしてください。施術者の手元も自然に見せてください。')">施術シーン</button><button onclick="setRevision('より上質で高級感のあるサロン空間にしてください。')">もっと高級感</button><button onclick="setRevision('全体を明るく、清潔感のある自然光の印象にしてください。')">もっと明るく</button></div><label>画像の追加希望</label><textarea id="rev"></textarea><div class="actions"><button class="btn" onclick="generateCandidates()">方向性の違うAI画像を3候補つくる</button></div><p class="${imageStatus.startsWith('エラー')?'error':'muted'}">${esc(imageStatus)}</p>${candidateHtml}<div class="uploadBox" style="margin-top:18px"><h4 class="sectionTitle">手持ちの画像を使う</h4><p class="helper">サロンで撮影した写真などを背景画像として使用できます。</p><input id="uploadImage" type="file" accept="image/*" onchange="handleUpload(event)"></div></div>${outputs.includes('image')?`<div class="controlBox" style="text-align:left"><h4 class="sectionTitle">Instagram画像の文字</h4><p class="helper">プレビュー上の文字を直接ドラッグして、好きな位置へ移動できます。</p><label>文字表示</label><select id="instaMode" onchange="setInstaMode(this.value)"><option value="none" ${instagramEditor.mode==='none'?'selected':''}>文字なし</option><option value="title" ${instagramEditor.mode==='title'?'selected':''}>タイトルのみ</option><option value="titleGift" ${instagramEditor.mode==='titleGift'?'selected':''}>タイトル＋サービス</option></select><label>タイトル（改行可）</label><textarea id="overlayTitle" oninput="updateInstaText()">${esc(instagramEditor.blocks.title.text)}</textarea><label>サービス・補足（改行可）</label><textarea id="overlayGift" oninput="updateInstaText()">${esc(instagramEditor.blocks.gift.text)}</textarea><label>下部の案内（改行可）</label><textarea id="overlayFooter" oninput="updateInstaText()">${esc(instagramEditor.blocks.footer.text)}</textarea>
-  <div class="controlGrid">
+`:''}<p class="helper">今回は方向性を変えた3案です。使いたい画像をクリックしてください。</p><div class="candidateGrid">${imageCandidates.map((src,i)=>`<div class="candidate ${imageSrc===src?'active':''}" onclick="chooseImageCandidate(${i})"><img src="${src}"><div style="text-align:center;margin-top:6px">${imageCandidateLabels[i]||labels[i]||`候補 ${i+1}`}</div></div>`).join('')}</div>`:'';$('result').innerHTML=`<div class="instaEditorRoot"><div class="instaPreviewColumn">${instaPreviewMarkup()}</div><aside class="instaEditorPanel controlBox" aria-label="Instagram画像編集パネル" tabindex="0">
+<details class="instaEditorGroup" data-insta-group="image" ${!imageSrc||!outputs.includes('image')?'open':''}><summary>画像</summary><p class="helper">AIは低画質で「人物・施術」「サロン空間」「イメージビジュアル」の3方向を作ります。</p><div class="quick"><button onclick="setRevision('施術を受けている大人女性を主役にしてください。施術者の手元も自然に見せてください。')">施術シーン</button><button onclick="setRevision('より上質で高級感のあるサロン空間にしてください。')">もっと高級感</button><button onclick="setRevision('全体を明るく、清潔感のある自然光の印象にしてください。')">もっと明るく</button></div><label>画像の追加希望</label><textarea id="rev"></textarea><div class="actions"><button class="btn" onclick="generateCandidates()">方向性の違うAI画像を3候補つくる</button></div><p class="${imageStatus.startsWith('エラー')?'error':'muted'}">${esc(imageStatus)}</p>${candidateHtml}<div class="uploadBox" style="margin-top:18px"><h4 class="sectionTitle">手持ちの画像を使う</h4><p class="helper">サロンで撮影した写真などを背景画像として使用できます。</p><input id="uploadImage" type="file" accept="image/*" onchange="handleUpload(event)"></div></details>
+${outputs.includes('image')?`<details class="instaEditorGroup" data-insta-group="content" open><summary>文字・内容</summary><p class="helper">プレビュー上の文字を直接ドラッグして、好きな位置へ移動できます。</p><label>文字表示</label><select id="instaMode" onchange="setInstaMode(this.value)"><option value="none" ${instagramEditor.mode==='none'?'selected':''}>文字なし</option><option value="title" ${instagramEditor.mode==='title'?'selected':''}>タイトルのみ</option><option value="titleGift" ${instagramEditor.mode==='titleGift'?'selected':''}>タイトル＋サービス</option></select><label>タイトル（改行可）</label><textarea id="overlayTitle" oninput="updateInstaText()">${esc(instagramEditor.blocks.title.text)}</textarea><label>サービス・補足（改行可）</label><textarea id="overlayGift" oninput="updateInstaText()">${esc(instagramEditor.blocks.gift.text)}</textarea><label>下部の案内（改行可）</label><textarea id="overlayFooter" oninput="updateInstaText()">${esc(instagramEditor.blocks.footer.text)}</textarea>
+</details>
+<details class="instaEditorGroup" data-insta-group="size"><summary>文字サイズ</summary>  <div class="controlGrid">
   <div class="controlItem">
     <label>タイトルサイズ</label>
     <div class="seg">
@@ -817,7 +838,10 @@ if(tab==='image'){const labels=['人物・施術','サロン空間','イメー�
     </div>
   </div>
 </div>
-  <label>文字揃え</label><div class="seg">${['left','center','right'].map(v=>`<button class="${instagramEditor.align===v?'active':''}" onclick="setInstaAlign('${v}')">${v==='left'?'左':v==='center'?'中央':'右'}</button>`).join('')}</div><div class="actions"><button class="btn" onclick="saveImageText()">文字を反映・保存</button><button class="btn btn2" onclick="downloadInsta()">Instagram画像を保存</button></div></div>`:''}</div>`;const root=document.querySelector('.instaEditorRoot');root.editorOwner=selected;root.editorPromo=currentPromoId;requestAnimationFrame(layoutInstaPreview);}}
+</details>
+<details class="instaEditorGroup" data-insta-group="design"><summary>デザイン</summary>  <label>文字揃え</label><div class="seg">${['left','center','right'].map(v=>`<button class="${instagramEditor.align===v?'active':''}" onclick="setInstaAlign('${v}')">${v==='left'?'左':v==='center'?'中央':'右'}</button>`).join('')}</div></details><div class="actions"><button class="btn" onclick="saveImageText()">文字を反映・保存</button><button class="btn btn2" onclick="downloadInsta()">Instagram画像を保存</button></div>`:''}
+</aside></div>`;const root=restoreInstaPanelState(instaPanelState);requestAnimationFrame(()=>{if(!root.isConnected)return;layoutInstaPreview();if(instaPanelState)root.querySelector('.instaEditorPanel').scrollTop=instaPanelState.scroll;});}}
+
 async function saveVersion(type,title,body,hashtags=[]){const{data:cur}=await sb.from('promotion_contents').select('id,version').eq('promotion_id',currentPromoId).eq('content_type',type).eq('is_current',true).order('version',{ascending:false}).limit(1).maybeSingle();if(cur)await sb.from('promotion_contents').update({is_current:false}).eq('id',cur.id);const{error}=await sb.from('promotion_contents').insert({promotion_id:currentPromoId,content_type:type,title,body,hashtags:hashtags||[],version:(cur?.version||0)+1,is_current:true});if(error)throw error;$('saveMsg').textContent='保存しました。';$('saveMsg').className='ok'}
 
 window.saveLineEdit=async()=>{contents.line={title:$('lineTitle').value,body:$('lineBody').value};await saveVersion('line',contents.line.title,contents.line.body,[]);render()};
@@ -997,7 +1021,28 @@ function instaPreviewMarkup(){
  const blocks=visible.filter(key=>key!=='footer'||editor.blocks.footer.text).map(key=>{const b=editor.blocks[key];return `<div class="instaText" data-insta-block="${key}" onpointerdown="startDrag(event,'insta${key[0].toUpperCase()+key.slice(1)}')" style="${textPosStyle(b.x,b.y,editor.align)}"><div class="${classes[key]}">${esc(b.text)}</div></div>`}).join('');
  return `<div class="instaFrame"><img src="${esc(imageSrc)}">${editor.mode==='none'?'':'<div class="instaVeil"></div>'}<div class="instaOverlay">${blocks}</div></div>`;
 }
+function captureInstaPanelState(){
+ const root=document.querySelector('.instaEditorRoot');if(!root||root.editorOwner!==selected||root.editorPromo!==currentPromoId)return null;
+ return {groups:[...root.querySelectorAll('.instaEditorGroup')].map(el=>[el.dataset.instaGroup,el.open]),scroll:root.querySelector('.instaEditorPanel').scrollTop,revision:$('rev')?.value||''};
+}
+function restoreInstaPanelState(state){
+ const root=document.querySelector('.instaEditorRoot');root.editorOwner=selected;root.editorPromo=currentPromoId;
+ if(!state)return root;
+ for(const [key,open] of state.groups){const group=root.querySelector(`[data-insta-group="${key}"]`);if(group)group.open=open;}
+ if($('rev'))$('rev').value=state.revision;
+ root.querySelector('.instaEditorPanel').scrollTop=state.scroll;
+ return root;
+}
+function sizeInstaEditor(){
+ const root=document.querySelector('.instaEditorRoot');if(!root)return;
+ const viewport=window.innerWidth+'x'+window.innerHeight;
+ if(root.sizingViewport===viewport)return;
+ root.sizingViewport=viewport;
+ const available=Math.max(180,window.innerHeight-Math.max(16,root.getBoundingClientRect().top)-16);
+ root.style.setProperty('--insta-editor-height',Math.floor(available)+'px');
+}
 function layoutInstaPreview(){
+ sizeInstaEditor();
  const frame=document.querySelector('.instaFrame');if(!frame||!frame.clientWidth)return;
  const w=frame.clientWidth,h=frame.clientHeight,scale=w/620,image=frame.querySelector('img');
  if(image&&!image.complete&&!image.instaLoadBound){image.instaLoadBound=true;image.addEventListener('load',layoutInstaPreview,{once:true});}
