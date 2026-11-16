@@ -163,6 +163,26 @@ justify-content:flex-start;
 .popFour.text-offer .popNumber{font-weight:800}
 .popFour.text-elegant .popOffer,.popFour.text-clean .popOffer,.popFour.text-offer .popOffer{border-bottom-color:var(--pop-rule)}
 .popFour.has-pop-accent .popNumber{color:var(--pop-accent)}
+.popEditor{display:grid;gap:20px;align-items:start}
+.popEditorPreview,.popEditorPanel{min-width:0}
+.popEditor .popPreview:not(.popModern) .popGift:before{margin-bottom:calc(18px*var(--pop-legacy-scale,1))}
+.popEditor .popPreview:not(.popModern) .popGift:after{margin-top:calc(18px*var(--pop-legacy-scale,1))}
+.popEditor .popEditorPanel{margin:0}
+.popEditor .controlGrid{grid-template-columns:1fr}
+.popEditor .controlItem{height:auto;min-width:0}
+.popEditor .controlItem .seg{margin-top:0;flex-wrap:wrap;gap:6px}
+.popEditor button,.popEditor select{min-height:44px}
+.popEditor .popActions{grid-template-columns:1fr}
+.popEditorGroup{border-top:1px solid var(--line);padding:10px 0}
+.popEditorGroup>summary{cursor:pointer;font-weight:700;padding:8px 0;min-height:44px}
+.popEditorGroup>summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.popEditorGroup textarea{min-height:88px}
+@media(min-width:900px){
+ .popEditor{grid-template-columns:minmax(0,1fr) minmax(300px,.85fr);--pop-editor-height:calc(100dvh - 260px)}
+ .popEditorPreview{position:sticky;top:16px}
+ .popEditor .popPreview{width:min(100%,620px,calc(var(--pop-editor-height)*210/297))}
+ .popEditor .popEditorPanel{max-height:var(--pop-editor-height);overflow-y:auto;overscroll-behavior-y:contain;scrollbar-gutter:stable}
+}
 </style></head><body><main class="wrap"><div class="head"><div><div>
   <h2 style="margin:0">SALON PROMO</h2>
   <div style="font-size:12px;letter-spacing:.08em;color:var(--muted);margin-top:3px">AI Promotion Studio</div>
@@ -268,7 +288,7 @@ function restorePopTextDesign(){
 function popTextDesignControls(){
  if(contents.pop?.design_version!==3)return '';
  const design=popTextDesign||{preset:'original',accent:'original'};
- return `<details class="textEditAccordion popTextDesignControls"><summary>文字デザイン</summary><label for="popTextPreset">プリセット</label><select id="popTextPreset" onchange="setPopTextDesign('preset',this.value)">${Object.entries(POP_TEXT_PRESETS).map(([id,label])=>`<option value="${id}" ${design.preset===id?'selected':''}>${label}</option>`).join('')}</select><label for="popTextAccent">強調色</label><select id="popTextAccent" onchange="setPopTextDesign('accent',this.value)">${Object.entries(POP_ACCENTS).map(([id,value])=>`<option value="${id}" ${design.accent===id?'selected':''}>${value.label}</option>`).join('')}</select><p class="helper">割引・時間サービスなどの強調部分に適用します。白文字では明るい配色になります。</p></details>`;
+ return `<div class="popTextDesignControls"><h4 class="sectionTitle">文字デザイン</h4><label for="popTextPreset">プリセット</label><select id="popTextPreset" onchange="setPopTextDesign('preset',this.value)">${Object.entries(POP_TEXT_PRESETS).map(([id,label])=>`<option value="${id}" ${design.preset===id?'selected':''}>${label}</option>`).join('')}</select><label for="popTextAccent">強調色</label><select id="popTextAccent" onchange="setPopTextDesign('accent',this.value)">${Object.entries(POP_ACCENTS).map(([id,value])=>`<option value="${id}" ${design.accent===id?'selected':''}>${value.label}</option>`).join('')}</select><p class="helper">割引・時間サービスなどの強調部分に適用します。白文字では明るい配色になります。</p></div>`;
 }
 window.setPopTextDesign=(key,value)=>{
  if(contents.pop?.design_version!==3)return;
@@ -307,7 +327,7 @@ function restorePopFontScales(){
 }
 function popFontControls(){
  if(!isModernPop())return '';
- return `<details class="textEditAccordion"><summary>文字サイズを細かく調整</summary>${Object.entries(POP_FONT_KEYS).map(([key,label])=>`<div class="popFontRow"><label for="popScale-${key}">${label}</label><div><button type="button" aria-label="${label}を1％小さく" onclick="adjustPopScale('${key}',-1)">−</button><input id="popScale-${key}" type="number" min="50" max="150" step="1" value="${Math.round(popScale(key)*100)}" oninput="inputPopScale('${key}',this)" onblur="this.value=Math.round(popScale('${key}')*100)"><span>％</span><button type="button" aria-label="${label}を1％大きく" onclick="adjustPopScale('${key}',1)">＋</button></div></div>`).join('')}<button type="button" class="btn btn2" onclick="resetPopScales()">サイズを初期値に戻す</button></details>`;
+ return `<div class="popFineSizes"><h4 class="sectionTitle">％で細かく調整</h4>${Object.entries(POP_FONT_KEYS).map(([key,label])=>`<div class="popFontRow"><label for="popScale-${key}">${label}</label><div><button type="button" aria-label="${label}を1％小さく" onclick="adjustPopScale('${key}',-1)">−</button><input id="popScale-${key}" type="number" min="50" max="150" step="1" value="${Math.round(popScale(key)*100)}" oninput="inputPopScale('${key}',this)" onblur="this.value=Math.round(popScale('${key}')*100)"><span>％</span><button type="button" aria-label="${label}を1％大きく" onclick="adjustPopScale('${key}',1)">＋</button></div></div>`).join('')}<button type="button" class="btn btn2" onclick="resetPopScales()">サイズを初期値に戻す</button></div>`;
 }
 function refreshPopFontPreview(){
  const frame=document.querySelector('.popPreview');if(!frame||!isModernPop())return;
@@ -441,9 +461,50 @@ function fitModernPop(){
   const message=document.getElementById('popFitMsg');if(message)message.textContent=bad?'文字が収まりません。文章を短くするか、文字サイズ・位置を調整してください。':autoShrunk?'収まるよう自動調整しています。':'';
   return !bad;
 }
-window.addEventListener('resize',()=>{fitModernPop()});
+function sizePopEditor(){
+ const editor=document.querySelector('.popEditor');if(!editor)return;
+ // Fit the paper and independent panel below the current page heading.
+ const available=Math.max(180,window.innerHeight-Math.max(16,editor.getBoundingClientRect().top)-16);
+ editor.style.setProperty('--pop-editor-height',Math.floor(available)+'px');
+ const legacy=editor.querySelector('.popPreview:not(.popModern)');
+ if(legacy){
+  // Legacy sizes use viewport units: scale their existing desktop appearance with the paper.
+  const scale=window.matchMedia('(min-width:900px)').matches?legacy.clientWidth/620:1;
+  legacy.style.setProperty('--pop-legacy-scale',scale);
+  legacy.querySelectorAll('.popH,.popSub,.popGift,.popFoot,.popBrand').forEach(el=>{
+   if(el.popOriginalFont===undefined)el.popOriginalFont=el.style.fontSize;
+   el.style.fontSize=el.popOriginalFont;
+   if(scale!==1)el.style.fontSize=parseFloat(getComputedStyle(el).fontSize)*scale+'px';
+  });
+ }
+}
+window.setPopAppearance=(key,value)=>{
+ if(key==='align')popAlign=value;
+ else if(key==='color')popTextColor=value;
+ else if(key==='veil')popVeilTone=value;
+ else if(key==='strength')popVeilStrength=value;
+ else return;
+ if(isModernPop())refreshPopFontPreview();
+ else render();
+ const values={align:popAlign,color:popTextColor,veil:popVeilTone,strength:popVeilStrength};
+ document.querySelectorAll('[data-pop-appearance]').forEach(button=>button.classList.toggle('active',button.dataset.value===values[button.dataset.popAppearance]));
+};
+window.addEventListener('resize',()=>{sizePopEditor();fitModernPop()});
 window.addEventListener('pointerup',()=>{fitModernPop()});
+function capturePopEditorState(){
+ const editor=document.querySelector('.popEditor');
+ if(!editor||editor.popOwner!==selected||editor.popId!==currentPromoId)return null;
+ return {drafts:Object.fromEntries(['Head','Sub','Gift','Footer'].map(key=>[key,$('popDesign'+key).value])),groups:[...editor.querySelectorAll('.popEditorGroup')].map(el=>el.open),scroll:editor.querySelector('.popEditorPanel').scrollTop};
+}
+function restorePopEditorState(state){
+ const editor=document.querySelector('.popEditor');editor.popOwner=selected;editor.popId=currentPromoId;
+ if(!state)return;
+ for(const [key,text] of Object.entries(state.drafts))$('popDesign'+key).value=text;
+ editor.querySelectorAll('.popEditorGroup').forEach((el,i)=>el.open=state.groups[i]);
+ editor.querySelector('.popEditorPanel').scrollTop=state.scroll;
+}
 function render(){
+const popEditorState=tab==='popdesign'?capturePopEditorState():null;
 if(tab==='line'){$('result').innerHTML=`<h3>LINE配信文を編集</h3><label>タイトル</label><textarea id="lineTitle">${esc(contents.line?.title||'')}</textarea><label>本文</label><textarea id="lineBody" style="min-height:330px">${esc(contents.line?.body||'')}</textarea><button class="btn" onclick="saveLineEdit()">LINEを保存</button>
 <button class="btn2" onclick="copyLineText()">文章をコピー</button>
 <button class="btn2" onclick="openLine()">LINEを開く</button>`;return}
@@ -452,7 +513,7 @@ if(tab==='insta'){$('result').innerHTML=`<h3>Instagram投稿文を編集</h3><la
 <button class="btn2" onclick="openInstagram()">Instagramを開く</button>`;return}
 if(tab==='popdesign'){const head=contents.pop?.headline ?? selected.title,
 sub=contents.pop?.subheadline ?? selected.catch,
-gift=contents.pop?.gift_display ?? selected.gift,fs=fontScale(popFont);$('result').innerHTML=`${isModernPop()?modernPopMarkup():`<div class="popPreview">${imageSrc?`<img class="popBg" src="${imageSrc}">`:''}<div class="popVeil" style="${
+gift=contents.pop?.gift_display ?? selected.gift,fs=fontScale(popFont);$('result').innerHTML=`<div class="popEditor"><div class="popEditorPreview">${isModernPop()?modernPopMarkup():`<div class="popPreview">${imageSrc?`<img class="popBg" src="${imageSrc}">`:''}<div class="popVeil" style="${
   popVeilTone==='dark'
     ? `background:rgba(20,18,16,${popVeilStrength==='light'?.22:popVeilStrength==='strong'?.58:.40})`
     : `background:rgba(255,250,244,${popVeilStrength==='light'?.22:popVeilStrength==='strong'?.58:.40})`
@@ -498,9 +559,8 @@ ${gift ? `
     ${esc((isModernPop()?(contents.pop.footer_display??''):(contents.pop?.footer_display || `${fmtDate($('start').value)}〜${fmtDate($('end').value)}\n${$('target').value} ／ ${$('conditions').value}`))).replace(/\n/g,'<br>')}
   </div>
   <div class="popBrand" style="color:${popTextColor==='white'?'#fff':'#3b332f'}">${esc(salon.salon_name)}</div>
-</div></div></div>`}<div class="controlBox"><h4 class="sectionTitle">POPの文字を調整</h4><p class="helper">プレビュー上の文字をマウス（スマホは指）でつかんで、好きな位置へ移動できます。文字揃えは位置とは別に変更できます。</p><p id="popFitMsg" class="error" role="status"></p><details class="textEditAccordion">
-  <summary>テキストを編集</summary>
-
+</div></div></div>`}</div><aside class="popEditorPanel controlBox" aria-label="POP編集パネル" tabindex="0"><h4 class="sectionTitle">POPを調整</h4><p class="helper">プレビューの文字をマウスや指で動かせます。必要な編集項目を開いて調整してください。</p><p id="popFitMsg" class="error" role="status"></p>
+<details class="popEditorGroup" data-pop-group="content" open><summary>文字・内容</summary>
   <label>タイトル（改行可）</label>
   <textarea id="popDesignHead">${esc(head)}</textarea>
 
@@ -511,20 +571,20 @@ ${gift ? `
   <textarea id="popDesignGift">${esc(gift)}</textarea>
   <label>フッター・条件（改行可）</label>
 <textarea id="popDesignFooter">${esc((isModernPop()?(contents.pop.footer_display??''):(contents.pop?.footer_display || `${fmtDate($('start').value)}〜${fmtDate($('end').value)}\n${$('target').value} ／ ${$('conditions').value}`)))}</textarea>
-</details><div class="controlGrid">
-
-  <div class="controlItem">
+<div class="controlGrid">  <div class="controlItem">
     <label>文字揃え</label>
     <div class="seg">
       ${['left','center','right'].map(v=>`
         <button class="${popAlign===v?'active':''}"
-          onclick="setPopAlign('${v}')">
+          data-pop-appearance="align" data-value="${v}" onclick="setPopAlign('${v}')">
           ${v==='left'?'左':v==='center'?'中央':'右'}
         </button>
       `).join('')}
     </div>
   </div>
 
+</div></details>
+<details class="popEditorGroup" data-pop-group="size"><summary>文字サイズ</summary><div class="controlGrid">
   <div class="controlItem">
     <label>タイトルサイズ</label>
     <div class="seg">
@@ -559,15 +619,15 @@ ${gift ? `
     `).join('')}
   </div>
 </div>
-${popFontControls()}
-${popTextDesignControls()}
+</div>${popFontControls()}</details>
+<details class="popEditorGroup" data-pop-group="design"><summary>デザイン</summary>${popTextDesignControls()}<div class="controlGrid">
   <div class="controlItem">
     <label>文字色</label>
     <div class="seg">
       <button class="${popTextColor==='dark'?'active':''}"
-        onclick="popTextColor='dark';render()">濃い文字</button>
+        data-pop-appearance="color" data-value="dark" onclick="setPopAppearance('color','dark')">濃い文字</button>
       <button class="${popTextColor==='white'?'active':''}"
-        onclick="popTextColor='white';render()">白文字</button>
+        data-pop-appearance="color" data-value="white" onclick="setPopAppearance('color','white')">白文字</button>
     </div>
   </div>
 
@@ -575,9 +635,9 @@ ${popTextDesignControls()}
     <label>背景ベール</label>
     <div class="seg">
       <button class="${popVeilTone==='light'?'active':''}"
-        onclick="popVeilTone='light';render()">明るい</button>
+        data-pop-appearance="veil" data-value="light" onclick="setPopAppearance('veil','light')">明るい</button>
       <button class="${popVeilTone==='dark'?'active':''}"
-        onclick="popVeilTone='dark';render()">暗い</button>
+        data-pop-appearance="veil" data-value="dark" onclick="setPopAppearance('veil','dark')">暗い</button>
     </div>
   </div>
 
@@ -585,19 +645,18 @@ ${popTextDesignControls()}
     <label>ベール濃さ</label>
     <div class="seg">
       <button class="${popVeilStrength==='light'?'active':''}"
-        onclick="popVeilStrength='light';render()">薄め</button>
+        data-pop-appearance="strength" data-value="light" onclick="setPopAppearance('strength','light')">薄め</button>
       <button class="${popVeilStrength==='medium'?'active':''}"
-        onclick="popVeilStrength='medium';render()">標準</button>
+        data-pop-appearance="strength" data-value="medium" onclick="setPopAppearance('strength','medium')">標準</button>
       <button class="${popVeilStrength==='strong'?'active':''}"
-        onclick="popVeilStrength='strong';render()">濃いめ</button>
+        data-pop-appearance="strength" data-value="strong" onclick="setPopAppearance('strength','strong')">濃いめ</button>
     </div>
   </div>
-<div class="popActions">
+</div></details><div class="popActions">
   <button class="btn" onclick="savePopDesignText()">保存して反映</button>
   <button class="btn btn2" onclick="restorePopText()">生成時の文章に戻す</button>
   <button class="btn btn2" onclick="downloadPop()">POP画像を保存</button>
-</div>
-</div></div>`;requestAnimationFrame(fitModernPop);return}
+</div></aside></div>`;restorePopEditorState(popEditorState);requestAnimationFrame(()=>{sizePopEditor();fitModernPop()});return}
 if(tab==='image'){const showText=instaTextMode!=='none',showGift=instaTextMode==='titleGift',labels=['人物・施術','サロン空間','イメージビジュアル'],candidateHtml=imageCandidates.length?`<h4 class="sectionTitle">AI画像候補</h4>${imageCandidateLabels.some(label=>label.includes('代替案'))?`
 <p class="helper" style="color:#8a5a44">
 一部の人物・施術画像が生成できなかったため、
@@ -691,7 +750,7 @@ window.copyInstaText=async()=>{
 window.openInstagram=()=>{
   window.open('https://www.instagram.com/','_blank');
 };
-window.setPopAlign=v=>{popAlign=v;render()};window.setPopFont=v=>setPopPreset('title',v);window.setPopGiftFont=v=>setPopPreset('gift',v);window.setPopFooterFont=v=>setPopPreset('footer',v);
+window.setPopAlign=v=>setPopAppearance('align',v);window.setPopFont=v=>setPopPreset('title',v);window.setPopGiftFont=v=>setPopPreset('gift',v);window.setPopFooterFont=v=>setPopPreset('footer',v);
 window.restorePopText=()=>{
   if(isModernPop()&&contents.pop.generated_text){const t=contents.pop.generated_text;$('popDesignHead').value=t.headline??'';$('popDesignSub').value=t.subheadline??'';$('popDesignGift').value=t.gift_display??'';$('popDesignFooter').value=t.footer_display??'';return;}
   $('popDesignHead').value=selected.title||'';
@@ -858,9 +917,12 @@ window.downloadPop=async()=>{
     }
 
     if(isModernPop()&&fitModernPop()===false)return alert('文字が収まりません。文章・サイズ・位置を調整してから保存してください。');
-    const scale=1240/el.getBoundingClientRect().width;
+    const bounds=el.getBoundingClientRect();
+    const scale=1240/bounds.width;
 
     const canvas=await html2canvas(el,{
+      width:bounds.width,
+      height:bounds.height,
       scale:scale,
       useCORS:true,
       allowTaint:false,
