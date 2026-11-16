@@ -387,11 +387,12 @@ document.addEventListener('toggle',event=>{
  if(popScaleHold&&event.target.tagName==='DETAILS'&&!event.target.open&&event.target.contains(popScaleHold.button))stopPopScaleHold(true);
 },true);
 function refreshPopFontPreview(){
- const frame=document.querySelector('.popPreview');if(!frame||!isModernPop())return;
+ const frame=document.querySelector('.popPreview');if(!frame)return;
  // Use unsaved editor text without changing the persisted content or replacing controls.
  const saved=contents.pop;
  contents.pop={...saved,headline:$('popDesignHead')?.value??saved.headline,subheadline:$('popDesignSub')?.value??saved.subheadline,gift_display:$('popDesignGift')?.value??saved.gift_display,footer_display:$('popDesignFooter')?.value??saved.footer_display};
- try{frame.outerHTML=modernPopMarkup();}finally{contents.pop=saved;}
+ try{frame.outerHTML=isModernPop()?modernPopMarkup():legacyPopMarkup(contents.pop.headline,contents.pop.subheadline,contents.pop.gift_display,contents.pop.footer_display);}finally{contents.pop=saved;}
+ if(!isModernPop())sizePopEditor();
  fitModernPop();
  for(const key of Object.keys(POP_FONT_KEYS)){
   const input=$('popScale-'+key);if(input&&input!==document.activeElement)input.value=Math.round(popScale(key)*100);
@@ -473,10 +474,18 @@ function restoreFourPopLayout(){
  popAlign=['left','center','right'].includes(l.align)?l.align:p.align;
  popTextColor=l.textColor==='white'?'white':'dark';popVeilTone=l.veilTone==='dark'?'dark':'light';popVeilStrength=['light','medium','strong'].includes(l.veilStrength)?l.veilStrength:'medium';
 }
+function popOfferMarkup(gift,numberScale){
+ if(!gift)return '';
+ return gift.split('\n').map(line=>{
+  // A blank offer line needs a line box; match emphasis within each input line only.
+  const content=line.trim()?esc(line).replace(/([0-9０-９]+(?:[.．][0-9０-９]+)?[^\S\r\n]*[％%][^\S\r\n]*(?:OFF|オフ|割引)|[0-9０-９]+[^\S\r\n]*分(?:間)?[^\S\r\n]*サービス)/gi,`<strong class="popNumber"${numberScale===undefined?'':` style="font-size:${numberScale}em;line-height:1.15"`}>$1</strong>`):'<br>';
+  return `<span class="popOffer">${content}</span>`;
+ }).join('');
+}
 function fourPopMarkup(){
  const p=popProfile(),parts=modernPopParts(),color=popTextColor==='white'?'#fff':'#3d372f',appearance=popTextDesignAppearance();
  const positions={popTitle:[popTitleX,popTitleY],popSub:[popSubX,popSubY],popGift:[popGiftX,popGiftY],popFooter:[popFooterX,popFooterY]};
- const rows=parts.gift.split('\n').filter(Boolean).map(line=>`<span class="popOffer">${esc(line).replace(/([0-9０-９]+(?:[.．][0-9０-９]+)?\s*[％%]\s*(?:OFF|オフ|割引)|[0-9０-９]+\s*分(?:間)?\s*サービス)/gi,`<strong class="popNumber" style="font-size:${p.numberScale}em;line-height:1.15">$1</strong>`)}</span>`).join('');
+ const rows=popOfferMarkup(parts.gift,p.numberScale);
  const text={popTitle:`<div class="popH">${esc(parts.headline)}</div>`,popSub:`<div class="popSub">${esc(parts.sub)}</div>`,popGift:`<div class="popGift">${rows}</div>`,popFooter:`<div class="popFoot">${esc(parts.footer)}</div><div class="popBrand">${esc(salon.salon_name)}</div>`};
  const blocks=Object.entries(p.blocks).map(([key,b])=>`<div class="popText" data-pop-block="${key}" onpointerdown="startDrag(event,'${key}')" style="${textPosStyle(...positions[key],popAlign)}width:${b.width}%;max-width:${b.width}%;color:${color};${key==='popGift'&&!appearance.decorated?p.decoration:''}">${text[key]}</div>`).join('');
  return `<div class="popPreview popModern popFour${appearance.className}" style="color:${color};${appearance.style}">${imageSrc?`<img class="popBg" src="${esc(imageSrc)}">`:''}<div class="popVeil" style="${popVeilStyle()}"></div><div class="popOverlayMain">${blocks}</div></div>`;
@@ -517,8 +526,17 @@ function captureFourPopPositions(){
 }
 function modernPopParts(){
   const p=contents.pop||{}, seen=new Set();
-  const unique=value=>String(value??'').split('\n').filter(line=>{const key=line.replace(/\s/g,'');if(!key)return false;if(seen.has(key))return false;seen.add(key);return true}).join('\n');
-  // Exact repeated lines only; never infer that a condition is an offer.
+  const unique=value=>{
+    const text=String(value??'').replace(/\r\n?/g,'\n');
+    if(text.includes('\n')){
+      for(const line of text.split('\n')){const key=line.replace(/\s/g,'');if(key)seen.add(key);}
+      return text;
+    }
+    const key=text.replace(/\s/g,'');
+    if(!key||seen.has(key))return '';
+    seen.add(key);return text;
+  };
+  // Multiline input is verbatim; retain the existing single-line de-duplication.
   const gift=unique(p.gift_display??selected.gift);
   const headline=unique(p.headline??selected.title),sub=unique(p.subheadline??selected.catch);
   const footer=unique(p.footer_display??p.footer??'');
@@ -530,7 +548,7 @@ function modernPopMarkup(){
   const variant=['seasonal','campaign','menu'].includes(p.design_variant)?p.design_variant:'menu';
   const color=popTextColor==='white'?'#fff':'#3d372f';
   const text=(kind,x,y,body)=>`<div class="popText" data-pop-block="${kind}" onpointerdown="startDrag(event,'${kind}')" style="${textPosStyle(x,y,popAlign)};color:${color}">${body}</div>`;
-  const offers=parts.gift.split('\n').filter(Boolean).map(line=>`<span class="popOffer">${esc(line).replace(/([0-9０-９]+(?:[.．][0-9０-９]+)?\s*[％%]\s*(?:OFF|オフ|割引)|[0-9０-９]+\s*分(?:間)?\s*サービス)/gi,'<strong class="popNumber">$1</strong>')}</span>`).join('');
+  const offers=popOfferMarkup(parts.gift);
   return `<div class="popPreview popModern pop-${variant}">${imageSrc?`<img class="popBg" src="${esc(imageSrc)}">`:''}<div class="popVeil" style="${popVeilStyle()}"></div><div class="popOverlayMain">${text('popTitle',popTitleX,popTitleY,`<div class="popH">${esc(parts.headline)}</div>`)}${text('popSub',popSubX,popSubY,`<div class="popSub">${esc(parts.sub)}</div>`)}${text('popGift',popGiftX,popGiftY,`<div class="popGift">${offers}</div>`)}${text('popFooter',popFooterX,popFooterY,`<div class="popFoot">${esc(parts.footer)}</div><div class="popBrand">${esc(salon.salon_name)}</div>`)}</div></div>`;
 }
 function fitModernPop(){
@@ -601,18 +619,9 @@ function restorePopEditorState(state){
  editor.querySelectorAll('.popEditorGroup').forEach((el,i)=>el.open=state.groups[i]);
  editor.querySelector('.popEditorPanel').scrollTop=state.scroll;
 }
-function render(){
-stopPopScaleHold(true);
-const popEditorState=tab==='popdesign'?capturePopEditorState():null;
-if(tab==='line'){$('result').innerHTML=`<h3>LINE配信文を編集</h3><label>タイトル</label><textarea id="lineTitle">${esc(contents.line?.title||'')}</textarea><label>本文</label><textarea id="lineBody" style="min-height:330px">${esc(contents.line?.body||'')}</textarea><button class="btn" onclick="saveLineEdit()">LINEを保存</button>
-<button class="btn2" onclick="copyLineText()">文章をコピー</button>
-<button class="btn2" onclick="openLine()">LINEを開く</button>`;return}
-if(tab==='insta'){$('result').innerHTML=`<h3>Instagram投稿文を編集</h3><label>投稿文</label><textarea id="instaBody" style="min-height:420px">${esc(contents.instagram?.caption||'')}</textarea><label>ハッシュタグ</label><textarea id="instaTags">${esc((contents.instagram?.hashtags||[]).map(h=>'#'+h.replace(/^#/,'')).join(' '))}</textarea><button class="btn" onclick="saveInstaTextEdit()">Instagram投稿文を保存</button>
-<button class="btn2" onclick="copyInstaText()">投稿文をコピー</button>
-<button class="btn2" onclick="openInstagram()">Instagramを開く</button>`;return}
-if(tab==='popdesign'){const head=contents.pop?.headline ?? selected.title,
-sub=contents.pop?.subheadline ?? selected.catch,
-gift=contents.pop?.gift_display ?? selected.gift,fs=fontScale(popFont);$('result').innerHTML=`<div class="popEditor"><div class="popEditorPreview">${isModernPop()?modernPopMarkup():`<div class="popPreview">${imageSrc?`<img class="popBg" src="${imageSrc}">`:''}<div class="popVeil" style="${popVeilStyle()}"></div><div class="popOverlayMain"><div class="popText"
+function legacyPopMarkup(head,sub,gift,footer=contents.pop?.footer_display || `${fmtDate($('start').value)}〜${fmtDate($('end').value)}\n${$('target').value} ／ ${$('conditions').value}`){
+ const fs=fontScale(popFont);
+ return `<div class="popPreview">${imageSrc?`<img class="popBg" src="${imageSrc}">`:''}<div class="popVeil" style="${popVeilStyle()}"></div><div class="popOverlayMain"><div class="popText"
   onpointerdown="startDrag(event,'popTitle')"
   style="${textPosStyle(popTitleX,popTitleY,popAlign)};color:${popTextColor==='white'?'#ffffff':'#3d372f'}">
   
@@ -651,21 +660,34 @@ ${gift ? `
     popFooterFont==='large' ? 'clamp(16px,2.5vw,22px)' :
     'clamp(13px,2.1vw,18px)'
   }">
-    ${esc((isModernPop()?(contents.pop.footer_display??''):(contents.pop?.footer_display || `${fmtDate($('start').value)}〜${fmtDate($('end').value)}\n${$('target').value} ／ ${$('conditions').value}`))).replace(/\n/g,'<br>')}
+    ${esc(footer).replace(/\n/g,'<br>')}
   </div>
   <div class="popBrand" style="color:${popTextColor==='white'?'#fff':'#3b332f'}">${esc(salon.salon_name)}</div>
-</div></div></div>`}</div><aside class="popEditorPanel controlBox" aria-label="POP編集パネル" tabindex="0"><h4 class="sectionTitle">POPを調整</h4><p class="helper">プレビューの文字をマウスや指で動かせます。必要な編集項目を開いて調整してください。</p><p id="popFitMsg" class="error" role="status"></p>
+</div></div></div>`;
+}
+function render(){
+stopPopScaleHold(true);
+const popEditorState=tab==='popdesign'?capturePopEditorState():null;
+if(tab==='line'){$('result').innerHTML=`<h3>LINE配信文を編集</h3><label>タイトル</label><textarea id="lineTitle">${esc(contents.line?.title||'')}</textarea><label>本文</label><textarea id="lineBody" style="min-height:330px">${esc(contents.line?.body||'')}</textarea><button class="btn" onclick="saveLineEdit()">LINEを保存</button>
+<button class="btn2" onclick="copyLineText()">文章をコピー</button>
+<button class="btn2" onclick="openLine()">LINEを開く</button>`;return}
+if(tab==='insta'){$('result').innerHTML=`<h3>Instagram投稿文を編集</h3><label>投稿文</label><textarea id="instaBody" style="min-height:420px">${esc(contents.instagram?.caption||'')}</textarea><label>ハッシュタグ</label><textarea id="instaTags">${esc((contents.instagram?.hashtags||[]).map(h=>'#'+h.replace(/^#/,'')).join(' '))}</textarea><button class="btn" onclick="saveInstaTextEdit()">Instagram投稿文を保存</button>
+<button class="btn2" onclick="copyInstaText()">投稿文をコピー</button>
+<button class="btn2" onclick="openInstagram()">Instagramを開く</button>`;return}
+if(tab==='popdesign'){const head=contents.pop?.headline ?? selected.title,
+sub=contents.pop?.subheadline ?? selected.catch,
+gift=contents.pop?.gift_display ?? selected.gift;$('result').innerHTML=`<div class="popEditor"><div class="popEditorPreview">${isModernPop()?modernPopMarkup():legacyPopMarkup(head,sub,gift)}</div><aside class="popEditorPanel controlBox" aria-label="POP編集パネル" tabindex="0"><h4 class="sectionTitle">POPを調整</h4><p class="helper">プレビューの文字をマウスや指で動かせます。必要な編集項目を開いて調整してください。</p><p id="popFitMsg" class="error" role="status"></p>
 <details class="popEditorGroup" data-pop-group="content" open><summary>文字・内容</summary>
   <label>タイトル（改行可）</label>
-  <textarea id="popDesignHead">${esc(head)}</textarea>
+  <textarea id="popDesignHead" oninput="refreshPopFontPreview()">${esc(head)}</textarea>
 
   <label>サブタイトル（改行可）</label>
-  <textarea id="popDesignSub">${esc(sub)}</textarea>
+  <textarea id="popDesignSub" oninput="refreshPopFontPreview()">${esc(sub)}</textarea>
 
   <label>サービス内容（改行可）</label>
-  <textarea id="popDesignGift">${esc(gift)}</textarea>
+  <textarea id="popDesignGift" oninput="refreshPopFontPreview()">${esc(gift)}</textarea>
   <label>フッター・条件（改行可）</label>
-<textarea id="popDesignFooter">${esc((isModernPop()?(contents.pop.footer_display??''):(contents.pop?.footer_display || `${fmtDate($('start').value)}〜${fmtDate($('end').value)}\n${$('target').value} ／ ${$('conditions').value}`)))}</textarea>
+<textarea id="popDesignFooter" oninput="refreshPopFontPreview()">${esc((isModernPop()?(contents.pop.footer_display??''):(contents.pop?.footer_display || `${fmtDate($('start').value)}〜${fmtDate($('end').value)}\n${$('target').value} ／ ${$('conditions').value}`)))}</textarea>
 <div class="controlGrid">  <div class="controlItem">
     <label>文字揃え</label>
     <div class="seg">
@@ -827,13 +849,14 @@ window.openInstagram=()=>{
 };
 window.setPopAlign=v=>setPopAppearance('align',v);window.setPopFont=v=>setPopPreset('title',v);window.setPopGiftFont=v=>setPopPreset('gift',v);window.setPopFooterFont=v=>setPopPreset('footer',v);
 window.restorePopText=()=>{
-  if(isModernPop()&&contents.pop.generated_text){const t=contents.pop.generated_text;$('popDesignHead').value=t.headline??'';$('popDesignSub').value=t.subheadline??'';$('popDesignGift').value=t.gift_display??'';$('popDesignFooter').value=t.footer_display??'';return;}
+  if(isModernPop()&&contents.pop.generated_text){const t=contents.pop.generated_text;$('popDesignHead').value=t.headline??'';$('popDesignSub').value=t.subheadline??'';$('popDesignGift').value=t.gift_display??'';$('popDesignFooter').value=t.footer_display??'';refreshPopFontPreview();return;}
   $('popDesignHead').value=selected.title||'';
   $('popDesignSub').value=selected.catch||'';
   $('popDesignGift').value=selected.gift||'';
   $('popDesignFooter').value=
   `${fmtDate($('start').value)}〜${fmtDate($('end').value)}
 ${$('target').value} ／ ${$('conditions').value}`;
+  refreshPopFontPreview();
 };window.savePopDesignText=async()=>{contents.pop={...contents.pop,headline:$('popDesignHead').value,subheadline:$('popDesignSub').value,gift_display:$('popDesignGift').value,
 footer_display:$('popDesignFooter').value,
 layout:{
