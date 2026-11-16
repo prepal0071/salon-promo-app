@@ -148,6 +148,21 @@ justify-content:flex-start;
 .popFour .popGift,.popFour .popH{font-family:"Noto Serif CJK JP","Yu Mincho","Hiragino Mincho ProN",serif}
 .popFour .popH{letter-spacing:.02em}
 .popFontRow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:12px 0}.popFontRow label{margin:0}.popFontRow>div{display:flex;align-items:center;gap:6px}.popFontRow input{width:80px;padding:8px}.popFontRow button{min-width:36px;min-height:36px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.popTextDesignControls{margin:14px 0}
+.popFour.text-elegant .popH,.popFour.text-elegant .popSub,.popFour.text-elegant .popGift{font-family:var(--pop-serif);font-weight:600}
+.popFour.text-elegant .popH{letter-spacing:.07em}
+.popFour.text-elegant [data-pop-block="popGift"]{border-top:1px solid var(--pop-rule);border-bottom:1px solid var(--pop-rule)}
+.popFour.text-clean .popH,.popFour.text-clean .popSub,.popFour.text-clean .popGift,.popFour.text-clean .popFoot{font-family:var(--pop-sans)}
+.popFour.text-clean .popH{font-weight:700;letter-spacing:0}
+.popFour.text-clean .popGift{font-weight:600}
+.popFour.text-clean .popNumber{white-space:nowrap}
+.popFour.text-clean [data-pop-block="popGift"]{border-left:3px solid var(--pop-rule)}
+.popFour.text-offer .popH{font-family:var(--pop-serif);font-weight:600}
+.popFour.text-offer .popGift{font-family:var(--pop-sans);font-weight:700}
+.popFour.text-offer [data-pop-block="popGift"]{background:var(--pop-band);border-top:2px solid var(--pop-rule);border-bottom:2px solid var(--pop-rule);border-radius:4px}
+.popFour.text-offer .popNumber{font-weight:800}
+.popFour.text-elegant .popOffer,.popFour.text-clean .popOffer,.popFour.text-offer .popOffer{border-bottom-color:var(--pop-rule)}
+.popFour.has-pop-accent .popNumber{color:var(--pop-accent)}
 </style></head><body><main class="wrap"><div class="head"><div><div>
   <h2 style="margin:0">SALON PROMO</h2>
   <div style="font-size:12px;letter-spacing:.08em;color:var(--muted);margin-top:3px">AI Promotion Studio</div>
@@ -241,6 +256,41 @@ const POP_LAYOUTS = {
 function isFourPop(){return contents.pop?.design_version!=null&&contents.pop.design_version!==2;}
 function isModernPop(){return contents.pop?.design_version!=null;}
 function popProfile(){const variant=contents.pop?.design_variant;return contents.pop?.design_version===3&&Object.hasOwn(POP_LAYOUTS,variant)?POP_LAYOUTS[variant]:POP_LAYOUTS.menu;}
+const POP_TEXT_PRESETS={original:'現在のデザイン',elegant:'上品',clean:'すっきり',offer:'特典を強調'};
+const POP_ACCENTS={original:{label:'元の文字色'},bordeaux:{label:'落ち着いたボルドー',dark:'#813d50',light:'#ffd1dc',band:'rgba(129,61,80,.09)'},forest:{label:'深緑',dark:'#285f49',light:'#c4efdb',band:'rgba(40,95,73,.09)'},navy:{label:'紺',dark:'#344e78',light:'#d0e1ff',band:'rgba(52,78,120,.09)'}};
+let popTextDesign=null;
+function restorePopTextDesign(){
+ popTextDesign=null;
+ if(contents.pop?.design_version!==3)return;
+ const saved=contents.pop.layout?.textDesign;
+ if(saved&&Object.hasOwn(POP_TEXT_PRESETS,saved.preset)&&Object.hasOwn(POP_ACCENTS,saved.accent))popTextDesign={preset:saved.preset,accent:saved.accent};
+}
+function popTextDesignControls(){
+ if(contents.pop?.design_version!==3)return '';
+ const design=popTextDesign||{preset:'original',accent:'original'};
+ return `<details class="textEditAccordion popTextDesignControls"><summary>文字デザイン</summary><label for="popTextPreset">プリセット</label><select id="popTextPreset" onchange="setPopTextDesign('preset',this.value)">${Object.entries(POP_TEXT_PRESETS).map(([id,label])=>`<option value="${id}" ${design.preset===id?'selected':''}>${label}</option>`).join('')}</select><label for="popTextAccent">強調色</label><select id="popTextAccent" onchange="setPopTextDesign('accent',this.value)">${Object.entries(POP_ACCENTS).map(([id,value])=>`<option value="${id}" ${design.accent===id?'selected':''}>${value.label}</option>`).join('')}</select><p class="helper">割引・時間サービスなどの強調部分に適用します。白文字では明るい配色になります。</p></details>`;
+}
+window.setPopTextDesign=(key,value)=>{
+ if(contents.pop?.design_version!==3)return;
+ const options=key==='preset'?POP_TEXT_PRESETS:key==='accent'?POP_ACCENTS:null;
+ if(!options||!Object.hasOwn(options,value))return;
+ popTextDesign={...(popTextDesign||{preset:'original',accent:'original'}),[key]:value};
+ if(key==='preset'){
+  if(value==='original')popTextDesign.accent='original';
+  else if(popTextDesign.accent==='original')popTextDesign.accent='bordeaux';
+ }
+ const accent=$('popTextAccent');if(accent)accent.value=popTextDesign.accent;
+ refreshPopFontPreview();
+};
+function popTextDesignAppearance(){
+ if(contents.pop?.design_version!==3||!popTextDesign)return {className:'',style:'',decorated:false};
+ const {preset,accent}=popTextDesign,white=popTextColor==='white',palette=POP_ACCENTS[accent],rule=white?'rgba(255,255,255,.65)':'rgba(61,55,47,.45)';
+ return {
+  className:` text-${preset}${accent!=='original'?' has-pop-accent':''}`,
+  style:`--pop-serif:'Noto Serif CJK JP','Yu Mincho','Hiragino Mincho ProN',serif;--pop-sans:'Yu Gothic',Meiryo,'Noto Sans CJK JP',sans-serif;--pop-rule:${rule};--pop-accent:${accent==='original'?'inherit':white?palette.light:palette.dark};--pop-band:${white?'rgba(255,255,255,.12)':palette.band||'rgba(61,55,47,.07)'};`,
+  decorated:preset!=='original'
+ };
+}
 const POP_FONT_KEYS = {title:'タイトル',sub:'サブタイトル',gift:'サービス・特典',footer:'期間・条件'};
 function popScale(key){
  const fallback={title:fontScale(popFont),sub:1,gift:fontScale(popGiftFont),footer:fontScale(popFooterFont)};
@@ -290,6 +340,7 @@ function setPopPreset(key,value){
  popFontScales[key]=fontScale(value);refreshPopFontPreview();
 }
 function restoreFourPopLayout(){
+ restorePopTextDesign();
  restorePopFontScales();
  if(!isFourPop())return;
  const p=popProfile(),l=contents.pop.layout||{},num=(key,fallback)=>typeof l[key]==='number'&&Number.isFinite(l[key])?clamp(l[key],0,100):fallback;
@@ -303,13 +354,13 @@ function restoreFourPopLayout(){
  popTextColor=l.textColor==='white'?'white':'dark';popVeilTone=l.veilTone==='dark'?'dark':'light';popVeilStrength=['light','medium','strong'].includes(l.veilStrength)?l.veilStrength:'medium';
 }
 function fourPopMarkup(){
- const p=popProfile(),parts=modernPopParts(),color=popTextColor==='white'?'#fff':'#3d372f';
+ const p=popProfile(),parts=modernPopParts(),color=popTextColor==='white'?'#fff':'#3d372f',appearance=popTextDesignAppearance();
  const positions={popTitle:[popTitleX,popTitleY],popSub:[popSubX,popSubY],popGift:[popGiftX,popGiftY],popFooter:[popFooterX,popFooterY]};
  const rows=parts.gift.split('\n').filter(Boolean).map(line=>`<span class="popOffer">${esc(line).replace(/([0-9０-９]+(?:[.．][0-9０-９]+)?\s*[％%]\s*(?:OFF|オフ|割引)|[0-9０-９]+\s*分(?:間)?\s*サービス)/gi,`<strong class="popNumber" style="font-size:${p.numberScale}em;line-height:1.15">$1</strong>`)}</span>`).join('');
  const text={popTitle:`<div class="popH">${esc(parts.headline)}</div>`,popSub:`<div class="popSub">${esc(parts.sub)}</div>`,popGift:`<div class="popGift">${rows}</div>`,popFooter:`<div class="popFoot">${esc(parts.footer)}</div><div class="popBrand">${esc(salon.salon_name)}</div>`};
  const opacity=popVeilStrength==='light'?.70:popVeilStrength==='strong'?.94:.84;
- const blocks=Object.entries(p.blocks).map(([key,b])=>`<div class="popText" data-pop-block="${key}" onpointerdown="startDrag(event,'${key}')" style="${textPosStyle(...positions[key],popAlign)}width:${b.width}%;max-width:${b.width}%;color:${color};${key==='popGift'?p.decoration:''}">${text[key]}</div>`).join('');
- return `<div class="popPreview popModern popFour" style="color:${color}">${imageSrc?`<img class="popBg" src="${esc(imageSrc)}">`:''}<div class="popVeil" style="background:${popVeilTone==='dark'?`rgba(20,18,16,${opacity})`:`rgba(255,250,244,${opacity})`}"></div><div class="popOverlayMain">${blocks}</div></div>`;
+ const blocks=Object.entries(p.blocks).map(([key,b])=>`<div class="popText" data-pop-block="${key}" onpointerdown="startDrag(event,'${key}')" style="${textPosStyle(...positions[key],popAlign)}width:${b.width}%;max-width:${b.width}%;color:${color};${key==='popGift'&&!appearance.decorated?p.decoration:''}">${text[key]}</div>`).join('');
+ return `<div class="popPreview popModern popFour${appearance.className}" style="color:${color};${appearance.style}">${imageSrc?`<img class="popBg" src="${esc(imageSrc)}">`:''}<div class="popVeil" style="background:${popVeilTone==='dark'?`rgba(20,18,16,${opacity})`:`rgba(255,250,244,${opacity})`}"></div><div class="popOverlayMain">${blocks}</div></div>`;
 }
 function fitFourPop(){
  const frame=document.querySelector('.popFour');if(!frame)return;
@@ -509,6 +560,7 @@ ${gift ? `
   </div>
 </div>
 ${popFontControls()}
+${popTextDesignControls()}
   <div class="controlItem">
     <label>文字色</label>
     <div class="seg">
@@ -652,6 +704,7 @@ ${$('target').value} ／ ${$('conditions').value}`;
 footer_display:$('popDesignFooter').value,
 layout:{
   ...contents.pop?.layout,
+  ...(contents.pop?.design_version===3&&popTextDesign?{textDesign:{...popTextDesign}}:{}),
   ...(isModernPop()?{fontScales:Object.fromEntries(Object.keys(POP_FONT_KEYS).map(key=>[key,popScale(key)]))}:{}),
   textColor:popTextColor,veilTone:popVeilTone,veilStrength:popVeilStrength,
   titleX:Math.round(popTitleX*10)/10,
