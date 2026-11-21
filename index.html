@@ -725,6 +725,7 @@ ${gift ? `
 </div></div></div>`;
 }
 function render(){
+captureImagePreparationDraft();
 stopInstaScaleHold(true);
 captureInstaDraft();
 const instaPanelState=tab==='image'?captureInstaPanelState():null;
@@ -817,14 +818,12 @@ ${popVeilControls()}
   <button class="btn btn2" onclick="restorePopText()">生成時の文章に戻す</button>
   <button class="btn btn2" onclick="downloadPop()">POP画像を保存</button>
 </div></aside></div>`;restorePopEditorState(popEditorState);requestAnimationFrame(()=>{sizePopEditor();fitModernPop();syncPopBrandControls()});return}
-if(tab==='image'){const labels=['人物・施術','サロン空間','イメージビジュアル'],candidateHtml=imageCandidates.length?`<h4 class="sectionTitle">AI画像候補</h4>${imageCandidateLabels.some(label=>label.includes('代替案'))?`
-<p class="helper" style="color:#8a5a44">
-一部の人物・施術画像が生成できなかったため、
-近い雰囲気の代替案を含めています。
-再生成すると別の人物・施術画像が生成される場合があります。
-</p>
-`:''}<p class="helper">今回は方向性を変えた3案です。使いたい画像をクリックしてください。</p><div class="candidateGrid">${imageCandidates.map((src,i)=>`<div class="candidate ${imageSrc===src?'active':''}" onclick="chooseImageCandidate(${i})"><img src="${src}"><div style="text-align:center;margin-top:6px">${imageCandidateLabels[i]||labels[i]||`候補 ${i+1}`}</div></div>`).join('')}</div>`:'';$('result').innerHTML=`<div class="instaEditorRoot"><div class="instaPreviewColumn">${instaPreviewMarkup()}</div><aside class="instaEditorPanel controlBox" aria-label="Instagram画像編集パネル" tabindex="0">
-<details class="instaEditorGroup" data-insta-group="image" ${!imageSrc||!outputs.includes('image')?'open':''}><summary>画像</summary><p class="helper">AIは低画質で「人物・施術」「サロン空間」「イメージビジュアル」の3方向を作ります。</p><div class="quick"><button onclick="setRevision('施術を受けている大人女性を主役にしてください。施術者の手元も自然に見せてください。')">施術シーン</button><button onclick="setRevision('より上質で高級感のあるサロン空間にしてください。')">もっと高級感</button><button onclick="setRevision('全体を明るく、清潔感のある自然光の印象にしてください。')">もっと明るく</button></div><label>画像の追加希望</label><textarea id="rev"></textarea><div class="actions"><button class="btn" onclick="generateCandidates()">方向性の違うAI画像を3候補つくる</button></div><p class="${imageStatus.startsWith('エラー')?'error':'muted'}">${esc(imageStatus)}</p>${candidateHtml}<div class="uploadBox" style="margin-top:18px"><h4 class="sectionTitle">手持ちの画像を使う</h4><p class="helper">サロンで撮影した写真などを背景画像として使用できます。</p><input id="uploadImage" type="file" accept="image/*" onchange="handleUpload(event)"></div>${outputs.includes('image')?instaBackgroundControls():''}</details>
+if(tab==='image'){const candidateHtml=imageCandidates.length?`<div class="candidate" style="max-width:280px;margin:12px auto"><img src="${esc(imageCandidates[0])}" alt="生成した背景画像"><p>${esc(IMAGE_DIRECTIONS[imageCandidateGeneration.direction].label)}</p><button type="button" class="btn" onclick="chooseImageCandidate(0)" ${imageSaveInFlight||imageGenerationInFlight?'disabled':''}>この画像を採用して保存</button></div>`:'';$('result').innerHTML=`<div class="instaEditorRoot"><div class="instaPreviewColumn">${instaPreviewMarkup()}</div><aside class="instaEditorPanel controlBox" aria-label="Instagram画像編集パネル" tabindex="0">
+<details class="instaEditorGroup" data-insta-group="image" ${!imageSrc||!outputs.includes('image')?'open':''}><summary>画像</summary>
+<label for="imageSourceMethod">画像の用意方法</label><select id="imageSourceMethod" onchange="setImagePreparation('method',this.value)"><option value="ai" ${imagePreparation.method==='ai'?'selected':''}>AIで画像を作成する</option><option value="upload" ${imagePreparation.method==='upload'?'selected':''}>画像をアップロードする</option></select>
+<div id="imageAiControls" ${imagePreparation.method==='ai'?'':'hidden'}><label for="imageDirection">デザインの方向性</label><select id="imageDirection" onchange="setImagePreparation('direction',this.value)">${Object.entries(IMAGE_DIRECTIONS).map(([key,item])=>`<option value="${key}" ${imagePreparation.direction===key?'selected':''}>${item.label}</option>`).join('')}</select><p class="helper">${esc(IMAGE_DIRECTIONS[imagePreparation.direction].description)}</p><label for="rev">画像の追加希望</label><textarea id="rev" oninput="imagePreparation.revision=this.value">${esc(imagePreparation.revision)}</textarea><div class="actions"><button type="button" class="btn" onclick="generateImage()" ${imageGenerationInFlight||imageSaveInFlight?'disabled':''}>${imageGenerationInFlight?'画像を生成中…':'画像を1枚生成する'}</button></div>${candidateHtml}</div>
+<div id="imageUploadControls" class="uploadBox" style="margin-top:18px" ${imagePreparation.method==='upload'?'':'hidden'}><label for="uploadImage">手持ちの画像を使う</label><input id="uploadImage" type="file" accept="image/*" onchange="handleUpload(event)" ${imageSaveInFlight?'disabled':''}></div>
+<p class="${imageStatus.startsWith('エラー')?'error':'muted'}" role="status">${esc(imageStatus)}</p>${outputs.includes('image')?instaBackgroundControls():''}</details>
 ${outputs.includes('image')?`<details class="instaEditorGroup" data-insta-group="content" open><summary>文字・内容</summary><p class="helper">プレビュー上の文字を直接ドラッグして、好きな位置へ移動できます。</p><label>文字表示</label><select id="instaMode" onchange="setInstaMode(this.value)"><option value="none" ${instagramEditor.mode==='none'?'selected':''}>文字なし</option><option value="title" ${instagramEditor.mode==='title'?'selected':''}>タイトルのみ</option><option value="titleGift" ${instagramEditor.mode==='titleGift'?'selected':''}>タイトル＋サービス</option></select><label>タイトル（改行可）</label><textarea id="overlayTitle" oninput="updateInstaText()">${esc(instagramEditor.blocks.title.text)}</textarea><label>サービス・補足（改行可）</label><textarea id="overlayGift" oninput="updateInstaText()">${esc(instagramEditor.blocks.gift.text)}</textarea><label>下部の案内（改行可）</label><textarea id="overlayFooter" oninput="updateInstaText()">${esc(instagramEditor.blocks.footer.text)}</textarea>
 </details>
 <details class="instaEditorGroup" data-insta-group="size"><summary>文字サイズ</summary>${instaSizeControls()}</details>
@@ -890,79 +889,48 @@ layout:{
   align:popAlign,
   font:popFont
 }};if(isFourPop()){render();fitFourPop();captureFourPopPositions();}await saveVersion('pop',contents.pop.headline,JSON.stringify(contents.pop),[]);render()};
-window.setRevision=t=>{const e=$('rev');if(e)e.value=t};
-async function generateOneImage(revision,variant){const j=await api('/api/image',{prompt:contents.image?.prompt_ja||`${selected.title} ${selected.gift}`,revision,variant});return j.image_base64?`data:image/png;base64,${j.image_base64}`:j.image_url}
-window.generateCandidates=async()=>{
-  const revision=$('rev')?.value||'';
-  const variants=['treatment','interior','concept'];
-
-  imageCandidates=[];
-  imageCandidateLabels=[];
-  imageStatus='方向性の違うAI画像を生成しています… 0/3';
-  render();
-
-  const made=[];
-
-  for(let i=0;i<variants.length;i++){
-    imageStatus=`AI画像を生成しています… ${i+1}/3`;
-    render();
-
-    try{
-      const src=await generateOneImage(revision,variants[i]);
-      if(src){
-  made.push(src);
-  imageCandidateLabels.push(
-    variants[i]==='treatment' ? '人物・施術' :
-    variants[i]==='interior' ? 'サロン空間' :
-    'イメージビジュアル'
-  );
-}
-
-    }catch(e){
-      try{
-        const safeRevision=`
-人物の身体への施術を直接見せない。
-人物を使わず、施術ベッド、タオル、植物、ハーブ、
-オイル、美容用品、自然光などを使って、
-今回の美容ケアを上品に連想できる広告イメージにする。
-性的・官能的な表現は一切含めない。
-`;
-
-        const retrySrc=await generateOneImage(
-          safeRevision,
-          i===1?'interior':'concept'
-        );
-
-        if(retrySrc){
-  made.push(retrySrc);
-  imageCandidateLabels.push(
-    i===0 ? '施術イメージ（人物・施術の代替案）' :
-i===1 ? 'サロン空間（人物・施術の代替案）' :
-'イメージビジュアル（人物・施術の代替案）'
-  );
-}
-
-      }catch(retryError){
-        console.warn(
-          `画像候補${i+1}は生成できませんでした`,
-          retryError
-        );
-      }
-    }
-  }
-
-  imageCandidates=made;
-
-  if(made.length===3){
-    imageStatus='方向性の違う3候補から使いたい画像を選んでください。';
-  }else if(made.length){
-    imageStatus=`${made.length}候補を生成しました。必要に応じてもう一度生成できます。`;
-  }else{
-    imageStatus='エラー：画像を生成できませんでした。もう一度お試しください。';
-  }
-
-  render();
+const IMAGE_DIRECTIONS={
+ natural:{label:'ナチュラル',description:'花・木・植物・自然素材・自然光を中心に、人物を原則使わない柔らかなイメージ。'},
+ luxury:{label:'高級感',description:'オイル・タオル・お茶・美容備品を中心に、内装や室内風景を主役にしない上質なイメージ。'},
+ auto:{label:'おまかせ（AI提案）',description:'販促情報から題材と雰囲気を判断します。必要に応じて人物や施術風景も使用します。'}
 };
+let imagePreparation={method:'ai',direction:'auto',revision:''},currentImageGeneration=null,imageCandidateGeneration=null;
+let imageEpoch=0,imageGenerationInFlight=null,imageSaveInFlight=false;
+function invalidateImageRequests(){imageEpoch++;imageCandidates=[];imageCandidateLabels=[];imageCandidateGeneration=null;imageStatus='';}
+function resetImagePreparation(){invalidateImageRequests();imagePreparation={method:'ai',direction:'auto',revision:''};currentImageGeneration=null;}
+function restoreImagePreparation(meta){
+ imagePreparation={method:'ai',direction:'auto',revision:''};currentImageGeneration=null;
+ const source=meta.imageGeneration;
+ if(source?.version===1&&['ai','upload'].includes(source.method)&&Object.hasOwn(IMAGE_DIRECTIONS,source.direction)){
+  imagePreparation={method:source.method,direction:source.direction,revision:typeof source.revision==='string'?source.revision:''};
+  currentImageGeneration={...imagePreparation,version:1};
+ }
+}
+function captureImagePreparationDraft(){
+ const root=document.querySelector('.instaEditorRoot');if(root?.editorOwner===selected&&root.editorPromo===currentPromoId&&$('rev'))imagePreparation.revision=$('rev').value;
+}
+function renderImageOperation(){if(tab==='image'&&!$('results').classList.contains('hide'))render();}
+window.setImagePreparation=(key,value)=>{
+ const allowed=key==='method'?['ai','upload']:key==='direction'?Object.keys(IMAGE_DIRECTIONS):[];
+ if(!allowed.includes(value))return;
+ captureImagePreparationDraft();invalidateImageRequests();imagePreparation[key]=value;renderImageOperation();
+};
+function imageContext(){return {title:selected?.title||'',offer:selected?.gift||'',theme:$('theme').value,benefits:$('benefits').value,target:$('target').value,start_date:$('start').value,end_date:$('end').value,conditions:$('conditions').value,required_content:$('requiredContent').value,salon_concept:settings?.concept||'',target_customer:settings?.target_customer||''};}
+function imageRequestValid(token,promotion){return imageEpoch===token&&currentPromoId===promotion&&!$('results').classList.contains('hide');}
+window.generateImage=async()=>{
+ if(imageGenerationInFlight||imageSaveInFlight||imagePreparation.method!=='ai')return;
+ captureImagePreparationDraft();
+ const request={epoch:++imageEpoch,promotion:currentPromoId,generation:{version:1,...imagePreparation},context:imageContext(),prompt:contents.image?.prompt_ja||`${selected?.title||''} ${selected?.gift||''}`};
+ imageGenerationInFlight=request;imageCandidates=[];imageCandidateGeneration=null;imageStatus='画像を生成しています…';renderImageOperation();
+ try{
+  const j=await api('/api/image',{prompt:request.prompt,revision:request.generation.revision,variant:request.generation.direction,context:request.context});
+  if(!imageRequestValid(request.epoch,request.promotion))return;
+  const src=j.image_base64?`data:image/png;base64,${j.image_base64}`:j.image_url;if(!src)throw Error('画像データを取得できませんでした。');
+  imageCandidates=[src];imageCandidateGeneration={...request.generation,epoch:request.epoch};imageStatus='生成しました。画像を確認し、採用すると保存されます。';
+ }catch(e){if(imageRequestValid(request.epoch,request.promotion))imageStatus='エラー：'+e.message;}
+ finally{if(imageGenerationInFlight===request)imageGenerationInFlight=null;renderImageOperation();}
+};
+new MutationObserver(()=>{if($('results').classList.contains('hide'))invalidateImageRequests();}).observe($('results'),{attributes:true,attributeFilter:['class']});
 function createInstagramEditor(texts={}){
  return {version:1,mode:'titleGift',align:'center',background:{type:'legacyGradient'},blocks:{
   title:{text:texts.title||'',x:50,y:28,size:'medium',scale:1,sizeModel:'pop',font:'serif',weight:600},
@@ -971,6 +939,7 @@ function createInstagramEditor(texts={}){
  }};
 }
 function resetInstagramEditor(){
+ resetImagePreparation();
  instagramEditor=createInstagramEditor({title:contents.pop?.headline||selected?.title,gift:contents.pop?.gift_display||selected?.gift,footer:`${fmtDate($('start').value)}〜${fmtDate($('end').value)} ／ ${$('conditions').value}`});
  imageRecordId=null;imageRecordType=null;
 }
@@ -978,6 +947,7 @@ function parseImageMetadata(value){
  try{const data=typeof value==='string'?JSON.parse(value):value;return data&&typeof data==='object'&&!Array.isArray(data)?data:{};}catch{return {};}
 }
 function restoreInstagramEditor(meta){
+ restoreImagePreparation(meta);
  const saved=meta.instagramEditor?.version===1?meta.instagramEditor:null;
  const bg=saved?.background;instagramEditor.background={type:'legacyGradient'};
  if(bg?.type==='veil'&&['none','light','dark'].includes(bg.mode)&&typeof bg.strength==='number'&&Number.isFinite(bg.strength)&&bg.strength>=0&&bg.strength<=100)instagramEditor.background={type:'veil',mode:bg.mode,strength:Math.round(bg.strength)};
@@ -1001,9 +971,9 @@ function restoreInstagramEditor(meta){
  if(['left','center','right'].includes(align))instagramEditor.align=align;
  if(typeof meta.prompt==='string'&&meta.prompt)contents.image={...(contents.image||{}),prompt_ja:meta.prompt};
 }
-function imageMetadata(existing={}){
+function imageMetadata(existing={},generation=currentImageGeneration){
  captureInstaDraft();
- return {...existing,prompt:contents.image?.prompt_ja||'',instagramEditor:JSON.parse(JSON.stringify(instagramEditor))};
+ return {...existing,...(generation?{imageGeneration:{version:1,method:generation.method,direction:generation.direction,revision:generation.revision}}:{}),prompt:contents.image?.prompt_ja||'',instagramEditor:JSON.parse(JSON.stringify(instagramEditor))};
 }
 function captureInstaDraft(){
  const root=document.querySelector('.instaEditorRoot');if(!root||root.editorOwner!==selected||root.editorPromo!==currentPromoId)return;
@@ -1160,9 +1130,54 @@ function refreshInstaPreview(){
 }
 window.updateInstaText=()=>{captureInstaDraft();refreshInstaPreview();};
 function blobExtension(t){return t==='image/jpeg'?'jpg':t==='image/webp'?'webp':'png'}
-async function persistImage(src){if(!currentPromoId||!src)return;let blob;if(src.startsWith('data:'))blob=await(await fetch(src)).blob();else blob=await(await fetch(src)).blob();const imageType=outputs.includes('image')?'instagram':'pop';const{data:old}=await sb.from('promotion_images').select('id,version').eq('promotion_id',currentPromoId).eq('image_type',imageType).eq('is_current',true).order('version',{ascending:false}).limit(1).maybeSingle();if(old)await sb.from('promotion_images').update({is_current:false}).eq('id',old.id);const v=(old?.version||0)+1,ext=blobExtension(blob.type),path=`${salon.id}/${currentPromoId}/${imageType}-v${v}.${ext}`;const{error:up}=await sb.storage.from('promotion-images').upload(path,blob,{contentType:blob.type||'image/png',upsert:false});if(up)throw up;const meta=imageMetadata();const{data:record,error:ie}=await sb.from('promotion_images').insert({promotion_id:currentPromoId,image_type:imageType,storage_path:path,generation_instruction:JSON.stringify(meta),version:v,is_current:true}).select('id').single();if(ie)throw ie;imageRecordId=record.id;imageRecordType=imageType}
-window.chooseImageCandidate=async i=>{imageSrc=imageCandidates[i];imageStatus='選んだ画像を保存しています…';render();try{await persistImage(imageSrc);imageStatus='この画像を使用します。保存しました。'}catch(e){imageStatus=`エラー：${e.message}`}render()};
-window.handleUpload=e=>{const file=e.target.files?.[0];if(!file)return;const reader=new FileReader();reader.onload=async()=>{imageSrc=reader.result;imageCandidates=[];imageStatus='アップロード画像を保存しています…';render();try{await persistImage(imageSrc);imageStatus='アップロード画像を使用します。保存しました。'}catch(err){imageStatus=`エラー：${err.message}`}render()};reader.readAsDataURL(file)};
+async function persistImage(src,generation=currentImageGeneration,valid=()=>true){
+ if(!currentPromoId||!src)throw Error('保存先の販促と画像を確認してください。');
+ const promotion=currentPromoId,type=outputs.includes('image')?'instagram':'pop',salonId=salon.id,meta=imageMetadata({},generation);
+ let path=null,record=null,old=null,retirementAttempted=false;
+ const assertCurrent=()=>{if(!valid())throw Error('画像の操作が切り替わったため保存を中止しました。');};
+ try{
+  assertCurrent();const response=await fetch(src);if(!response.ok)throw Error('元画像を読み込めませんでした。');const blob=await response.blob();assertCurrent();
+  const previous=await sb.from('promotion_images').select('id,version').eq('promotion_id',promotion).eq('image_type',type).eq('is_current',true).order('version',{ascending:false}).limit(1).maybeSingle();if(previous.error)throw previous.error;old=previous.data;
+  const version=(old?.version||0)+1;path=`${salonId}/${promotion}/${type}-v${version}-${crypto.randomUUID()}.${blobExtension(blob.type)}`;
+  const upload=await sb.storage.from('promotion-images').upload(path,blob,{contentType:blob.type||'image/png',upsert:false});if(upload.error)throw upload.error;assertCurrent();
+  // A replacement is fully stored before the old image's current flag is touched.
+  const inserted=await sb.from('promotion_images').insert({promotion_id:promotion,image_type:type,storage_path:path,generation_instruction:JSON.stringify(meta),version,is_current:false}).select('id').single();if(inserted.error)throw inserted.error;if(!inserted.data)throw Error('画像の登録を確認できませんでした。');record=inserted.data;assertCurrent();
+  if(old){retirementAttempted=true;const retired=await sb.from('promotion_images').update({is_current:false}).eq('id',old.id).eq('promotion_id',promotion).select('id').single();if(retired.error)throw retired.error;}
+  const activated=await sb.from('promotion_images').update({is_current:true}).eq('id',record.id).eq('promotion_id',promotion).select('id').single();if(activated.error)throw activated.error;if(!activated.data)throw Error('画像の切替を確認できませんでした。');
+  assertCurrent();return {id:record.id,type};
+ }catch(error){
+  // Compensate failed finalization; never delete an older source image.
+  let restored=true;
+  if(retirementAttempted&&old){const rollback=await sb.from('promotion_images').update({is_current:true}).eq('id',old.id).eq('promotion_id',promotion);restored=!rollback.error;}
+  let removed=!record;
+  if(record&&restored){const cleanup=await sb.from('promotion_images').delete().eq('id',record.id).eq('promotion_id',promotion);removed=!cleanup.error;}
+  if(path&&removed){try{await sb.storage.from('promotion-images').remove([path]);}catch{}}
+  if(!restored||!removed)throw Error('画像保存の完了を確認できませんでした。以前の画像データは削除していません。再度開いて状態を確認してください。');
+  throw error;
+ }
+}
+async function adoptImage(src,generation,token,promotion){
+ if(imageSaveInFlight)return;imageSaveInFlight=true;imageStatus='画像を保存しています…';renderImageOperation();
+ try{
+  const valid=()=>imageRequestValid(token,promotion),record=await persistImage(src,generation,valid);
+  if(!valid())return;
+  imageSrc=src;imageRecordId=record.id;imageRecordType=record.type;currentImageGeneration={version:1,method:generation.method,direction:generation.direction,revision:generation.revision};imagePreparation={...currentImageGeneration};
+  imageCandidates=[];imageCandidateGeneration=null;imageStatus='この画像を使用します。保存しました。';
+ }catch(e){if(imageRequestValid(token,promotion))imageStatus='エラー：'+e.message;}
+ finally{imageSaveInFlight=false;renderImageOperation();}
+}
+window.chooseImageCandidate=async index=>{
+ if(index!==0||!imageCandidates[0]||!imageCandidateGeneration||imageGenerationInFlight||imageSaveInFlight)return;
+ const candidate=imageCandidateGeneration;if(!imageRequestValid(candidate.epoch,currentPromoId))return;
+ await adoptImage(imageCandidates[0],candidate,candidate.epoch,currentPromoId);
+};
+window.handleUpload=event=>{
+ const file=event.target.files?.[0];if(!file||imagePreparation.method!=='upload'||imageSaveInFlight)return;
+ captureImagePreparationDraft();invalidateImageRequests();const token=imageEpoch,promotion=currentPromoId,generation={version:1,...imagePreparation,method:'upload'},reader=new FileReader();
+ reader.onload=async()=>{if(imageRequestValid(token,promotion))await adoptImage(reader.result,generation,token,promotion);};
+ reader.onerror=()=>{if(imageRequestValid(token,promotion)){imageStatus='エラー：画像ファイルを読み込めませんでした。';renderImageOperation();}};
+ reader.readAsDataURL(file);
+};
 window.setInstaMode=value=>{captureInstaDraft();instagramEditor.mode=value;refreshInstaPreview();};
 window.setInstaAlign=value=>{captureInstaDraft();instagramEditor.align=value;refreshInstaPreview();};
 function setInstaSize(block,value){stopInstaScaleHold(true);captureInstaDraft();prepareInstaSizing(block);instagramEditor.blocks[block].size=value;instagramEditor.blocks[block].scale=fontScale(value);refreshInstaPreview();}
@@ -1185,7 +1200,7 @@ window.saveImageText=async()=>{
   $('saveMsg').textContent='画像の文字設定を保存しました。';$('saveMsg').className='ok';refreshInstaPreview();
  }catch(e){$('saveMsg').textContent=e.message;$('saveMsg').className='error';}
 };
-window.openPromo=async id=>{const{data:p,error}=await sb.from('promotions').select('*').eq('id',id).single();if(error)return alert(error.message);currentPromoId=id;selected=p.selected_plan||{title:p.theme,gift:p.gift_request,catch:''};outputs=p.requested_outputs||[];$('requiredContent').value=typeof p.selected_plan?.input_details?.required_content==='string'?p.selected_plan.input_details.required_content:'';$('benefits').value=typeof p.selected_plan?.input_details?.benefits==='string'?p.selected_plan.input_details.benefits:'';$('start').value=p.start_date;$('end').value=p.end_date;$('theme').value=p.theme||'';const goalOptions=Array.from($('promotionGoal').options).map(o=>o.value);const savedGoal=p.sales_goal||'通常の来店を促したい';$('promotionGoal').value=goalOptions.includes(savedGoal)?savedGoal:'other';$('promotionGoalOther').value=goalOptions.includes(savedGoal)?'':savedGoal;$('promotionGoalOther').style.display=$('promotionGoal').value==='other'?'block':'none';$('gift').value=p.gift_request||'';$('target').value=p.target||'';$('conditions').value=p.conditions||'';contents={};const{data:cs}=await sb.from('promotion_contents').select('*').eq('promotion_id',id).eq('is_current',true);for(const c of cs||[]){if(c.content_type==='pop'){try{contents.pop=JSON.parse(c.body)}catch{contents.pop={headline:c.title||'',subheadline:'',body:c.body,footer:''}}}if(c.content_type==='line')contents.line={title:c.title||'',body:c.body};if(c.content_type==='instagram')contents.instagram={caption:c.body,hashtags:c.hashtags||[]}}if((outputs.includes('image')||outputs.includes('pop'))&&!contents.image)contents.image={prompt_ja:`${selected.title} ${selected.gift} 女性向けエステサロンの上品な施術イメージ`};popTitleX=Number(contents.pop?.layout?.titleX ?? contents.pop?.layout?.x)||50;
+window.openPromo=async id=>{invalidateImageRequests();const{data:p,error}=await sb.from('promotions').select('*').eq('id',id).single();if(error)return alert(error.message);currentPromoId=id;selected=p.selected_plan||{title:p.theme,gift:p.gift_request,catch:''};outputs=p.requested_outputs||[];$('requiredContent').value=typeof p.selected_plan?.input_details?.required_content==='string'?p.selected_plan.input_details.required_content:'';$('benefits').value=typeof p.selected_plan?.input_details?.benefits==='string'?p.selected_plan.input_details.benefits:'';$('start').value=p.start_date;$('end').value=p.end_date;$('theme').value=p.theme||'';const goalOptions=Array.from($('promotionGoal').options).map(o=>o.value);const savedGoal=p.sales_goal||'通常の来店を促したい';$('promotionGoal').value=goalOptions.includes(savedGoal)?savedGoal:'other';$('promotionGoalOther').value=goalOptions.includes(savedGoal)?'':savedGoal;$('promotionGoalOther').style.display=$('promotionGoal').value==='other'?'block':'none';$('gift').value=p.gift_request||'';$('target').value=p.target||'';$('conditions').value=p.conditions||'';contents={};const{data:cs}=await sb.from('promotion_contents').select('*').eq('promotion_id',id).eq('is_current',true);for(const c of cs||[]){if(c.content_type==='pop'){try{contents.pop=JSON.parse(c.body)}catch{contents.pop={headline:c.title||'',subheadline:'',body:c.body,footer:''}}}if(c.content_type==='line')contents.line={title:c.title||'',body:c.body};if(c.content_type==='instagram')contents.instagram={caption:c.body,hashtags:c.hashtags||[]}}if((outputs.includes('image')||outputs.includes('pop'))&&!contents.image)contents.image={prompt_ja:`${selected.title} ${selected.gift}`};popTitleX=Number(contents.pop?.layout?.titleX ?? contents.pop?.layout?.x)||50;
 popTitleY=Number(contents.pop?.layout?.titleY ?? contents.pop?.layout?.y)||(contents.pop?.design_version===2?17:28);
 popSubX=Number(contents.pop?.layout?.subX)||50;
 popSubY=Number(contents.pop?.layout?.subY)||(contents.pop?.design_version===2?31:43);
